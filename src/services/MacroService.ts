@@ -1,8 +1,11 @@
 // src/services/MacroService.ts
 
 export interface CountryMacroScore {
-  country: string; countryName: string;
-  gdpGrowth: number | null; internetUsers: number | null; techExports: number | null;
+  country: string; 
+  countryName: string;
+  gdpGrowth: number | null; 
+  internetUsers: number | null; 
+  techExports: number | null;
   compositeScore: number;
 }
 
@@ -16,15 +19,14 @@ export class MacroService {
   public static async fetchCountryScore(countryCode: string): Promise<CountryMacroScore | null> {
     try {
       const codes = Object.values(INDICATORS).join(';');
+      
+      // ATTAQUE DIRECTE : On supprime le proxy AllOrigins qui te bloque
       const targetUrl = `https://api.worldbank.org/v2/country/${countryCode}/indicator/${codes}?format=json&mrv=1&per_page=100`;
       
-      // Ajout du proxy pour éviter le blocage CORS
-      const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(targetUrl)}`;
-      
-      const response = await fetch(proxyUrl);
-      const json = await response.json();
-      const data = JSON.parse(json.contents); // AllOrigins renvoie le texte dans "contents"
+      const response = await fetch(targetUrl);
+      const data = await response.json();
 
+      // Vérification de la structure de la réponse de la Banque Mondiale
       if (!data || !data[1] || data[1].length === 0) return null;
       
       const records = data[1];
@@ -45,7 +47,7 @@ export class MacroService {
         compositeScore: Math.round(compositeScore)
       };
     } catch (e) {
-      console.error(`Erreur MacroService (${countryCode}):`, e);
+      console.error(`🔴 Erreur MacroService en direct (${countryCode}):`, e);
       return null;
     }
   }
