@@ -4,11 +4,13 @@ import { MaritimePanel } from './components/MaritimePanel';
 import { CascadePanel } from './components/CascadePanel';
 import { LiveNewsPanel } from './components/LiveNewsPanel';
 import { ClimatePanel } from './components/ClimatePanel';
+import { OilPanel } from './components/OilPanel'; // AJOUT DE L'IMPORT
 
 // Services
 import { fetchLiveEarthquakes, fetchLiveNaturalEvents } from './services/api';
 import { fetchLiveFires } from './services/wildfires';
 import { ClimateService } from './services/ClimateService';
+import { OilService } from './services/OilService'; // AJOUT DE L'IMPORT
 
 export class App {
   private containerId: string;
@@ -16,6 +18,7 @@ export class App {
   private maritimePanel!: MaritimePanel;
   private cascadePanel!: CascadePanel;
   private climatePanel!: ClimatePanel;
+  private oilPanel!: OilPanel; // AJOUT DE LA PROPRIÉTÉ
 
   constructor(containerId: string) {
     this.containerId = containerId;
@@ -49,16 +52,19 @@ export class App {
       this.maritimePanel = new MaritimePanel();
       this.cascadePanel = new CascadePanel();
       this.climatePanel = new ClimatePanel();
+      this.oilPanel = new OilPanel(); // INITIALISATION DU PANNEAU PÉTROLE
       
       // Ajout des éléments au DOM
       panelsContainer.appendChild(this.maritimePanel.element);
       panelsContainer.appendChild(this.cascadePanel.element);
       panelsContainer.appendChild(this.climatePanel.element);
+      panelsContainer.appendChild(this.oilPanel.element); // AJOUT AU DOM
 
       // États de chargement visuels
       this.maritimePanel.showLoading("Analyse NASA EONET...");
       this.cascadePanel.showLoading("Flux USGS en cours...");
       this.climatePanel.showLoading("Calcul anomalies Open-Meteo...");
+      this.oilPanel.showLoading("Marchés Énergie..."); // CHARGEMENT
     }
 
     // 3. Lancement du chargement des données
@@ -67,12 +73,13 @@ export class App {
 
   private async loadRealTimeData() {
     try {
-      // On récupère uniquement les données fiables
+      // On récupère les données fiables, incluant le pétrole
       const results = await Promise.allSettled([
         fetchLiveEarthquakes(),
         fetchLiveNaturalEvents(),
         fetchLiveFires(),
-        ClimateService.fetchAnomalies()
+        ClimateService.fetchAnomalies(),
+        OilService.fetchPrices() // APPEL DU SERVICE PÉTROLE
       ]);
 
       const earthquakes = results[0].status === 'fulfilled' ? results[0].value : [];
@@ -83,12 +90,14 @@ export class App {
       const fires = Array.isArray(wildfireResult) ? wildfireResult : (wildfireResult.fires || []);
       
       const climate = results[3].status === 'fulfilled' ? results[3].value : [];
+      const oilPrices = results[4].status === 'fulfilled' ? results[4].value : []; // RÉCUPÉRATION DU PÉTROLE
 
       // Mises à jour des panneaux classiques avec la donnée sécurisée
       if (this.map) this.map.updateLiveData(earthquakes, naturalEvents, fires);
       if (this.maritimePanel) this.maritimePanel.updateData(naturalEvents);
       if (this.cascadePanel) this.cascadePanel.updateData(earthquakes, fires);
       if (this.climatePanel) this.climatePanel.updateData(climate);
+      if (this.oilPanel) this.oilPanel.updateData(oilPrices); // MISE À JOUR DU PANNEAU
 
     } catch (err) {
       console.error("Erreur critique dans le flux de données:", err);
