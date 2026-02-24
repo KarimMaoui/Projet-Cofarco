@@ -15,20 +15,8 @@ export class App {
     const container = document.getElementById(this.containerId);
     if (!container) throw new Error(`Container #${this.containerId} not found`);
 
-    // 1. Définir le layout principal
-    container.innerHTML = `
-      <header class="header" style="height: 50px; background: #0a0a0a; border-bottom: 1px solid #2a2a2a; display: flex; align-items: center; padding: 0 20px; justify-content: space-between;">
-        <div style="display: flex; align-items: baseline; gap: 10px;">
-          <div style="font-size: 16px; font-weight: 800; color: #44ff88; letter-spacing: 1px;">COFARCO RISK MONITOR</div>
-          <div style="font-size: 10px; color: #888; text-transform: uppercase; letter-spacing: 2px;">Commodities & Trade Finance</div>
-        </div>
-        <div style="font-size: 11px; color: #666; font-family: monospace;">STATUS: EN LIGNE • LATENCY: 12ms</div>
-      </header>
-      <main style="display: flex; height: calc(100vh - 50px); overflow: hidden;">
-        <section id="map-container" style="flex: 2; border-right: 1px solid #2a2a2a; position: relative;"></section>
-        <section id="panels-container" style="flex: 1; min-width: 350px; max-width: 450px; background: #0a0a0a; padding: 16px; display: flex; flex-direction: column; gap: 16px; overflow-y: auto;"></section>
-      </main>
-    `;
+    // 1. Définir le layout principal (Disposition Haut/Bas)
+    this.renderLayout(container);
 
     // 2. Initialiser la carte
     const mapContainer = document.getElementById('map-container');
@@ -92,5 +80,38 @@ export class App {
         ]);
       }, 1500); // 1.5s d'effet de chargement pour le côté "temps réel"
     }
+  }
+
+  private renderLayout(container: HTMLElement) {
+    container.innerHTML = `
+      <header class="header" style="height: 40px; background: #141414; border-bottom: 1px solid #2a2a2a; display: flex; align-items: center; padding: 0 20px; justify-content: space-between;">
+        <div style="display: flex; align-items: baseline; gap: 10px;">
+          <div style="font-size: 14px; font-weight: 800; color: #44ff88; letter-spacing: 1px;">COFARCO RISK MONITOR</div>
+          <div style="font-size: 10px; color: #888; text-transform: uppercase; letter-spacing: 2px;">Commodities & Trade Finance</div>
+        </div>
+        <div style="display: flex; align-items: center; gap: 8px;">
+           <div style="width: 8px; height: 8px; border-radius: 50%; background: #ff4444; animation: pulse 1.5s infinite;"></div>
+           <span style="font-size: 10px; color: #fff; font-weight: bold; letter-spacing: 1px;">LIVE</span>
+        </div>
+      </header>
+      
+      <main class="main-content" style="display: flex; flex-direction: column; height: calc(100vh - 40px); overflow-y: auto; background: #0a0a0a;">
+        
+        <section class="map-section" style="height: 55vh; min-height: 400px; position: relative; flex-shrink: 0; border-bottom: 1px solid #2a2a2a;">
+          <div id="map-container" style="position: absolute; inset: 0;"></div>
+        </section>
+        
+        <section id="panels-container" class="panels-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 12px; padding: 16px;">
+          </section>
+
+      </main>
+      <style>
+        @keyframes pulse { 
+          0% { opacity: 1; box-shadow: 0 0 0 0 rgba(255, 68, 68, 0.4); } 
+          70% { opacity: 0.5; box-shadow: 0 0 0 6px rgba(255, 68, 68, 0); } 
+          100% { opacity: 1; box-shadow: 0 0 0 0 rgba(255, 68, 68, 0); } 
+        }
+      </style>
+    `;
   }
 }
