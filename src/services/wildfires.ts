@@ -10,23 +10,27 @@ export interface MapFire {
   acq_date: string;
 }
 
-export async function fetchLiveFires(): Promise<MapFire[]> {
+export interface FireRegionStats {
+  region: string;
+  fireCount: number;
+  totalFrp: number;
+  highIntensityCount: number;
+}
+
+export async function fetchLiveFires(): Promise<{ fires: MapFire[], stats: FireRegionStats[] }> {
   const targetUrl = "https://firms.modaps.eosdis.nasa.gov/data/active_fire/suomi-npp-viirs-c2/csv/SUOMI_VIIRS_C2_Global_24h.csv";
-  // On utilise le proxy pour éviter l'erreur CORS bloquante sur localhost
   const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(targetUrl)}`;
 
   try {
     const response = await fetch(proxyUrl);
-    if (!response.ok) throw new Error('Erreur réseau via Proxy');
-
     const json = await response.json();
-    const csvData = json.contents; // Le contenu du fichier CSV se trouve ici
+    const csvData = json.contents;
 
-    if (!csvData) return [];
+    if (!csvData) return { fires: [], stats: [] };
 
-    // On sépare par ligne et on retire l'en-tête (la première ligne)
     const rows = csvData.split('\n').slice(1);
     const fires: MapFire[] = [];
+    const regionGroups: Record<string, MapFire[]> = {};
 
     for (const row of rows) {
       if (!row.trim()) continue;
@@ -34,27 +38,40 @@ export async function fetchLiveFires(): Promise<MapFire[]> {
 
       const lat = parseFloat(cols[0]);
       const lon = parseFloat(cols[1]);
-      const brightness = parseFloat(cols[2]);
-      const confidence = cols[9]; // Indice de confiance (h, n, l)
-      const frp = parseFloat(cols[12]); // Puissance radiative du feu (MW)
+      
+      // Attribution d'une région basée sur les coordonnées (la NASA ne la donne pas dans le CSV)
+      let region = "Autres";
+      if (lon < -30) region = "Amériques";
+      else if (lon > 60 && lat > 0) region = "Asie/Pacifique";
+      else if (lat > 35) region = "Europe";
+      else region = "Afrique/MO";
 
-      // Filtrage : On ne garde que les détections fiables avec un impact réel
-      if (frp > 5 && (confidence === 'h' || confidence === 'n')) {
-        fires.push({
-          lat,
-          lon,
-          brightness,
-          frp,
-          confidence,
-          region: "Détection Satellitaire NASA",
-          acq_date: cols[5],
-        });
+      const fire: MapFire = {
+        lat, lon,
+        brightness: parseFloat(cols[2]),
+        confidence: cols[9],
+        frp: parseFloat(cols[12]),
+        region,
+        acq_date: cols[5],
+      };
+
+      if (fire.frp > 5 && (fire.confidence === 'h' || fire.confidence === 'n')) {
+        fires.push(fire);
+        (regionGroups[region] ??= []).push(fire);
       }
     }
 
-    return fires;
+    // Calcul des statistiques par région
+    const stats: FireRegionStats[] = Object.entries(regionGroups).map(([name, fArr]) => ({
+      region: name,
+      fireCount: fArr.length,
+      totalFrp: fArr.reduce((sum, f) => sum + f.frp, 0),
+      highIntensityCount: fArr.filter(f => f.confidence === 'h' || f.brightness > 350).length
+    })).sort((a, b) => b.fireCount - a.fireCount);
+
+    return { fires, stats };
   } catch (error) {
-    console.error("Erreur lors de la récupération des incendies NASA:", error);
-    return [];
+    console.error("Erreur NASA FIRMS:", error);
+    return { fires: [], stats: [] };
   }
 }
