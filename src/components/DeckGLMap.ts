@@ -1,19 +1,14 @@
 // src/components/DeckGLMap.ts
 import { MapboxOverlay } from '@deck.gl/mapbox';
 import { GeoJsonLayer, PathLayer, ScatterplotLayer } from '@deck.gl/layers';
+import { HeatmapLayer } from '@deck.gl/aggregation-layers';
 import maplibregl from 'maplibre-gl';
 import type { MapLayers } from '../types';
 
 import { PIPELINES } from '../config/pipelines';
 import { PORTS } from '../config/ports';
 import { CONFLICT_ZONES, STRATEGIC_WATERWAYS } from '../config/geo';
-
-interface DeckMapState {
-  zoom: number;
-  pan: { x: number; y: number };
-  view: string;
-  layers: MapLayers;
-}
+import { CRITICAL_MINERALS, DEMO_FIRES, DEMO_WEATHER, DEMO_MILITARY, DEMO_AIS_DENSITY, DEMO_CLIMATE_ANOMALIES } from '../config/demo-data';
 
 const DARK_STYLE = 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json';
 
@@ -21,15 +16,16 @@ export class DeckGLMap {
   private container: HTMLElement;
   private deckOverlay: MapboxOverlay | null = null;
   private maplibreMap: maplibregl.Map | null = null;
-  private state: DeckMapState;
+  private state: { zoom: number; layers: any };
 
-  constructor(container: HTMLElement, initialState: DeckMapState) {
+  constructor(container: HTMLElement, initialState: any) {
     this.container = container;
     this.state = initialState;
 
     this.setupDOM();
     this.initMapLibre();
-    this.createLayerMenu(); // Création du menu des couches
+    this.createLayerMenu();
+    this.createLegend(); // Création de la légende en bas
 
     this.maplibreMap?.on('load', () => {
       this.initDeck();
@@ -40,10 +36,9 @@ export class DeckGLMap {
     this.container.style.position = 'relative';
     this.container.style.width = '100%';
     this.container.style.height = '100%';
-    
     const mapContainer = document.createElement('div');
     mapContainer.id = 'deckgl-basemap';
-    mapContainer.style.cssText = 'position: absolute; top: 0; left: 0; width: 100%; height: 100%;';
+    mapContainer.style.cssText = 'position: absolute; inset: 0;';
     this.container.appendChild(mapContainer);
   }
 
@@ -62,6 +57,33 @@ export class DeckGLMap {
     this.deckOverlay = new MapboxOverlay({
       interleaved: true,
       layers: this.buildLayers(),
+      // --- LOGIQUE DES TOOLTIPS (SURVOL) ---
+      getTooltip: (info: any) => {
+        if (!info.object) return null;
+        const obj = info.object;
+        const layerId = info.layer.id;
+        let html = '';
+
+        if (layerId === 'pipelines-layer') {
+          html = `<strong>${obj.name}</strong><br/>Type: ${obj.type.toUpperCase()}<br/>Capacité: ${obj.capacity || 'Inconnue'}`;
+        } else if (layerId === 'ports-layer') {
+          html = `<strong>${obj.name}</strong><br/>Pays: ${obj.country}<br/>${obj.note}`;
+        } else if (layerId === 'conflicts-layer') {
+          html = `<strong>${obj.properties.name}</strong><br/>Zone sous tension affectant le fret.`;
+        } else if (layerId === 'waterways-layer') {
+          html = `<strong>${obj.name}</strong><br/>${obj.description}`;
+        } else if (layerId === 'minerals-layer') {
+          html = `<strong>${obj.name} (${obj.mineral})</strong><br/>Statut: ${obj.status.toUpperCase()}<br/>${obj.significance}`;
+        } else if (layerId === 'fires-layer') {
+          html = `<strong>🔥 Incendie Détecté</strong><br/>Région: ${obj.region}<br/>${obj.note}`;
+        } else if (layerId === 'weather-layer') {
+          html = `<strong>Météo: ${obj.severity}</strong><br/>${obj.event}<br/>${obj.headline}`;
+        } else if (layerId === 'military-layer') {
+          html = `<strong>Activité Militaire</strong><br/>Navire: ${obj.name}<br/>Statut AIS: ${obj.isDark ? 'COUPÉ (Dark)' : 'Actif'}`;
+        }
+
+        return html ? { html: `<div class="deckgl-tooltip">${html}</div>` } : null;
+      },
     });
     this.maplibreMap.addControl(this.deckOverlay as unknown as maplibregl.IControl);
   }
@@ -72,7 +94,7 @@ export class DeckGLMap {
     }
   }
 
-  // --- LE MENU DES COUCHES (Comme sur ton image) ---
+  // --- LE MENU DES COUCHES ---
   private createLayerMenu(): void {
     const menu = document.createElement('div');
     menu.className = 'layer-menu';
@@ -82,44 +104,53 @@ export class DeckGLMap {
       { key: 'ports', label: 'PORTS STRATÉGIQUES', icon: '🚢' },
       { key: 'cables', label: 'CÂBLES SOUS-MARINS', icon: '🔌' },
       { key: 'waterways', label: 'CHOKEPOINTS MARITIMES', icon: '⚓' },
-      { key: 'conflicts', label: 'ZONES DE CONFLIT', icon: '⚔️' }
+      { key: 'minerals', label: 'MINÉRAUX CRITIQUES', icon: '💎' },
+      { key: 'conflicts', label: 'ZONES DE CONFLIT', icon: '⚔️' },
+      { key: 'military', label: 'ACTIVITÉ MILITAIRE', icon: '🎯' },
+      { key: 'ais', label: 'TRAFIC MARITIME (AIS)', icon: '📡' },
+      { key: 'weather', label: 'ALERTES MÉTÉO', icon: '🌪️' },
+      { key: 'climate', label: 'ANOMALIES CLIMATIQUES', icon: '🌡️' },
+      { key: 'fires', label: 'INCENDIES', icon: '🔥' }
     ];
 
-    let html = `
-      <div class="layer-menu-header">
-        <span>COUCHES</span>
-        <span style="cursor:pointer;">▼</span>
-      </div>
-      <div class="layer-list">
-    `;
-
+    let html = `<div class="layer-menu-header"><span>COUCHES</span><span>▼</span></div><div class="layer-list">`;
     layersConfig.forEach(({ key, label, icon }) => {
-      const isChecked = this.state.layers[key as keyof MapLayers] ? 'checked' : '';
-      html += `
-        <label class="layer-item">
-          <input type="checkbox" data-layer="${key}" ${isChecked}>
-          <span class="custom-checkbox"></span>
-          <span class="layer-icon">${icon}</span>
-          <span class="layer-label">${label}</span>
-        </label>
-      `;
+      const isChecked = this.state.layers[key] ? 'checked' : '';
+      html += `<label class="layer-item"><input type="checkbox" data-layer="${key}" ${isChecked}><span class="custom-checkbox"></span><span class="layer-icon">${icon}</span><span class="layer-label">${label}</span></label>`;
     });
-
     html += `</div>`;
     menu.innerHTML = html;
     this.container.appendChild(menu);
 
-    // Écouter les clics sur les cases à cocher
     menu.querySelectorAll('input[type="checkbox"]').forEach(input => {
       input.addEventListener('change', (e) => {
         const target = e.target as HTMLInputElement;
-        const layerKey = target.getAttribute('data-layer') as keyof MapLayers;
+        const layerKey = target.getAttribute('data-layer');
         if (layerKey) {
           this.state.layers[layerKey] = target.checked;
-          this.render(); // Re-dessiner la carte
+          this.render();
         }
       });
     });
+  }
+
+  // --- LA LÉGENDE (Comme sur le screenshot) ---
+  private createLegend(): void {
+    const legend = document.createElement('div');
+    legend.style.cssText = `
+      position: absolute; bottom: 10px; left: 50%; transform: translateX(-50%);
+      display: flex; align-items: center; gap: 16px; padding: 6px 16px;
+      background: #0a0a0a; border: 1px solid #2a2a2a; border-radius: 4px;
+      font-family: monospace; font-size: 10px; color: #888; z-index: 100;
+    `;
+    legend.innerHTML = `
+      <span style="font-weight:bold;">LÉGENDE</span>
+      <span style="display:flex; align-items:center; gap:4px;"><span style="color:#ff4444;">●</span> Alerte élevée</span>
+      <span style="display:flex; align-items:center; gap:4px;"><span style="color:#ffaa00;">●</span> Élevé</span>
+      <span style="display:flex; align-items:center; gap:4px;"><span style="color:#ffff00;">●</span> Surveillance</span>
+      <span style="display:flex; align-items:center; gap:4px;"><span style="color:#00aaff;">▲</span> Base</span>
+    `;
+    this.container.appendChild(legend);
   }
 
   private buildLayers() {
@@ -131,9 +162,7 @@ export class DeckGLMap {
         data: PIPELINES,
         getPath: (d) => d.points,
         getColor: (d) => d.type === 'oil' ? [255, 107, 53, 200] : [0, 180, 216, 200],
-        getWidth: 2,
-        widthMinPixels: 2,
-        pickable: true
+        getWidth: 2, widthMinPixels: 2, pickable: true
       }));
     }
 
@@ -144,8 +173,7 @@ export class DeckGLMap {
         getPosition: (d) => [d.lon, d.lat],
         getRadius: 8000,
         getFillColor: (d) => d.type === 'oil' || d.type === 'lng' ? [255, 140, 0, 200] : [0, 200, 255, 180],
-        radiusMinPixels: 4,
-        pickable: true
+        radiusMinPixels: 4, pickable: true
       }));
     }
 
@@ -153,32 +181,61 @@ export class DeckGLMap {
       const conflictGeoJSON = {
         type: 'FeatureCollection',
         features: CONFLICT_ZONES.map(zone => ({
-          type: 'Feature',
-          geometry: { type: 'Polygon', coordinates: [zone.coords] },
-          properties: { name: zone.name }
+          type: 'Feature', geometry: { type: 'Polygon', coordinates: [zone.coords] }, properties: { name: zone.name }
         }))
       };
       layers.push(new GeoJsonLayer({
-        id: 'conflicts-layer',
-        data: conflictGeoJSON,
-        filled: true,
-        stroked: true,
-        getFillColor: [255, 0, 0, 40],
-        getLineColor: [255, 0, 0, 180],
-        getLineWidth: 2,
-        lineWidthMinPixels: 1,
+        id: 'conflicts-layer', data: conflictGeoJSON, filled: true, stroked: true,
+        getFillColor: [255, 0, 0, 40], getLineColor: [255, 0, 0, 180], getLineWidth: 2, lineWidthMinPixels: 1, pickable: true
       }));
     }
 
     if (this.state.layers.waterways) {
       layers.push(new ScatterplotLayer({
-        id: 'waterways-layer',
-        data: STRATEGIC_WATERWAYS,
-        getPosition: (d) => [d.lon, d.lat],
-        getRadius: 15000,
-        getFillColor: [255, 255, 0, 180],
-        radiusMinPixels: 6,
-        pickable: true
+        id: 'waterways-layer', data: STRATEGIC_WATERWAYS, getPosition: (d) => [d.lon, d.lat], getRadius: 15000,
+        getFillColor: [255, 255, 0, 180], radiusMinPixels: 6, pickable: true
+      }));
+    }
+
+    if (this.state.layers.minerals) {
+      layers.push(new ScatterplotLayer({
+        id: 'minerals-layer', data: CRITICAL_MINERALS, getPosition: (d) => [d.lon, d.lat], getRadius: 10000,
+        getFillColor: [0, 200, 255, 200], radiusMinPixels: 5, pickable: true
+      }));
+    }
+
+    if (this.state.layers.fires) {
+      layers.push(new ScatterplotLayer({
+        id: 'fires-layer', data: DEMO_FIRES, getPosition: (d) => [d.lon, d.lat], getRadius: (d) => d.frp * 150,
+        getFillColor: [255, 60, 0, 200], radiusMinPixels: 5, pickable: true
+      }));
+    }
+
+    if (this.state.layers.weather) {
+      layers.push(new ScatterplotLayer({
+        id: 'weather-layer', data: DEMO_WEATHER, getPosition: (d) => [d.lon, d.lat], getRadius: 25000,
+        getFillColor: [255, 0, 0, 150], radiusMinPixels: 8, pickable: true
+      }));
+    }
+
+    if (this.state.layers.military) {
+      layers.push(new ScatterplotLayer({
+        id: 'military-layer', data: DEMO_MILITARY, getPosition: (d) => [d.lon, d.lat], getRadius: 8000,
+        getFillColor: (d) => d.isDark ? [255, 0, 0, 255] : [0, 150, 255, 255], radiusMinPixels: 4, pickable: true
+      }));
+    }
+
+    if (this.state.layers.ais) {
+      layers.push(new ScatterplotLayer({
+        id: 'ais-layer', data: DEMO_AIS_DENSITY, getPosition: (d) => [d.lon, d.lat], getRadius: (d) => 5000 + d.intensity * 10000,
+        getFillColor: [0, 209, 255, 100], radiusMinPixels: 6
+      }));
+    }
+
+    if (this.state.layers.climate) {
+      layers.push(new HeatmapLayer({
+        id: 'climate-layer', data: DEMO_CLIMATE_ANOMALIES, getPosition: (d) => [d.lon, d.lat],
+        getWeight: (d) => Math.abs(d.precipDelta), radiusPixels: 40, intensity: 1, colorRange: [[255, 200, 50], [255, 100, 50], [255, 50, 50]]
       }));
     }
 
