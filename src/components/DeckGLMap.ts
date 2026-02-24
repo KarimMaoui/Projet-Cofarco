@@ -1,17 +1,16 @@
 // src/components/DeckGLMap.ts
 import { MapboxOverlay } from '@deck.gl/mapbox';
 import { GeoJsonLayer, PathLayer, ScatterplotLayer } from '@deck.gl/layers';
-import { HeatmapLayer } from '@deck.gl/aggregation-layers';
 import maplibregl from 'maplibre-gl';
 import type { MapLayers } from '../types';
 
-// Imports des données statiques
+// Imports des données statiques (Vraies infrastructures mondiales)
 import { PIPELINES } from '../config/pipelines';
 import { PORTS } from '../config/ports';
 import { CONFLICT_ZONES, STRATEGIC_WATERWAYS } from '../config/geo';
 
-// Imports des données simulées (Mocks) pour la démo
-import { CRITICAL_MINERALS, DEMO_WEATHER, DEMO_MILITARY, DEMO_AIS_DENSITY, DEMO_CLIMATE_ANOMALIES } from '../config/demo-data';
+// L'UNIQUE donnée restante dans demo-data.ts
+import { CRITICAL_MINERALS } from '../config/demo-data';
 
 const DARK_STYLE = 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json';
 
@@ -91,17 +90,11 @@ export class DeckGLMap {
         } else if (layerId === 'minerals-layer') {
           html = `<strong>${obj.name} (${obj.mineral})</strong><br/>Statut: ${obj.status.toUpperCase()}<br/>${obj.significance}`;
         } else if (layerId === 'fires-layer') {
-          html = `<strong>🔥 Incendie Détecté (NASA)</strong><br/>Région: ${obj.region}<br/>Puissance (FRP): ${obj.frp} MW<br/>Confiance: ${obj.confidence === 'h' ? 'Haute' : 'Nominale'}`;
-        } else if (layerId === 'weather-layer') {
-          html = `<strong>Météo: ${obj.severity}</strong><br/>${obj.event}<br/>${obj.headline}`;
+          html = `<strong>🔥 Incendie Détecté (NASA)</strong><br/>Puissance (FRP): ${obj.frp} MW<br/>Confiance: ${obj.confidence === 'h' ? 'Haute' : 'Nominale'}`;
         } else if (layerId === 'nasa-events-layer') {
           html = `<strong>⚠️ Alerte NASA EONET</strong><br/>Type: ${obj.category.toUpperCase()}<br/>${obj.title}`;
         } else if (layerId === 'earthquakes-layer') {
           html = `<strong>🔴 Séisme (USGS)</strong><br/>Magnitude: ${obj.magnitude.toFixed(1)}<br/>Lieu: ${obj.place}<br/>Heure: ${obj.time.toLocaleTimeString()}`;
-        } else if (layerId === 'military-layer') {
-          html = `<strong>Activité Militaire</strong><br/>Navire: ${obj.name}<br/>Statut AIS: ${obj.isDark ? 'COUPÉ (Dark)' : 'Actif'}`;
-        } else if (layerId === 'ais-layer') {
-          html = `<strong>Densité AIS</strong><br/>${obj.note}<br/>Variation: +${obj.deltaPct}%`;
         }
 
         return html ? { html: `<div class="deckgl-tooltip">${html}</div>` } : null;
@@ -127,13 +120,9 @@ export class DeckGLMap {
       { key: 'waterways', label: 'CHOKEPOINTS MARITIMES', icon: '⚓' },
       { key: 'minerals', label: 'MINÉRAUX CRITIQUES', icon: '💎' },
       { key: 'conflicts', label: 'ZONES DE CONFLIT', icon: '⚔️' },
-      { key: 'military', label: 'ACTIVITÉ MILITAIRE', icon: '🎯' },
-      { key: 'ais', label: 'TRAFIC MARITIME (AIS)', icon: '📡' },
       { key: 'earthquakes', label: 'SÉISMES LIVE (USGS)', icon: '🔴' },
       { key: 'nasa', label: 'TEMPÊTES & VOLCANS', icon: '🌪️' },
-      { key: 'fires', label: 'INCENDIES LIVE (NASA)', icon: '🔥' },
-      { key: 'weather', label: 'ALERTES MÉTÉO', icon: '🌧️' },
-      { key: 'climate', label: 'ANOMALIES CLIMATIQUES', icon: '🌡️' }
+      { key: 'fires', label: 'INCENDIES LIVE (NASA)', icon: '🔥' }
     ];
 
     let html = `
@@ -210,21 +199,9 @@ export class DeckGLMap {
       layers.push(new GeoJsonLayer({ id: 'conflicts-layer', data: conflictGeoJSON, filled: true, stroked: true, getFillColor: [255, 0, 0, 40], getLineColor: [255, 0, 0, 180], getLineWidth: 2, lineWidthMinPixels: 1, pickable: true }));
     }
 
-    // 2. Éléments additionnels (Mockés)
+    // 2. Éléments statiques additionnels
     if (this.state.layers.minerals) {
       layers.push(new ScatterplotLayer({ id: 'minerals-layer', data: CRITICAL_MINERALS, getPosition: (d) => [d.lon, d.lat], getRadius: 10000, getFillColor: [0, 200, 255, 200], radiusMinPixels: 5, pickable: true }));
-    }
-    if (this.state.layers.weather) {
-      layers.push(new ScatterplotLayer({ id: 'weather-layer', data: DEMO_WEATHER, getPosition: (d) => [d.lon, d.lat], getRadius: 25000, getFillColor: [255, 0, 0, 150], radiusMinPixels: 8, pickable: true }));
-    }
-    if (this.state.layers.military) {
-      layers.push(new ScatterplotLayer({ id: 'military-layer', data: DEMO_MILITARY, getPosition: (d) => [d.lon, d.lat], getRadius: 8000, getFillColor: (d) => d.isDark ? [255, 0, 0, 255] : [0, 150, 255, 255], radiusMinPixels: 4, pickable: true }));
-    }
-    if (this.state.layers.ais) {
-      layers.push(new ScatterplotLayer({ id: 'ais-layer', data: DEMO_AIS_DENSITY, getPosition: (d) => [d.lon, d.lat], getRadius: (d) => 5000 + d.intensity * 10000, getFillColor: [0, 209, 255, 100], radiusMinPixels: 6, pickable: true }));
-    }
-    if (this.state.layers.climate) {
-      layers.push(new HeatmapLayer({ id: 'climate-layer', data: DEMO_CLIMATE_ANOMALIES, getPosition: (d) => [d.lon, d.lat], getWeight: (d) => Math.abs(d.precipDelta), radiusPixels: 40, intensity: 1, colorRange: [[255, 200, 50], [255, 100, 50], [255, 50, 50]] }));
     }
 
     // 3. Vraies données LIVE (Récupérées par l'API)
