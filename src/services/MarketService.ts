@@ -9,90 +9,77 @@ export interface MarketAsset {
   changePercent: number;
 }
 
+// Les vrais symboles boursiers officiels (Yahoo Finance)
 export const COMMODITIES = [
-  { symbol: 'GC=F', name: 'Gold', display: 'GOLD', fallbackPrice: 2045.50 },
-  { symbol: 'CL=F', name: 'Crude Oil', display: 'OIL', fallbackPrice: 78.30 },
-  { symbol: 'NG=F', name: 'Natural Gas', display: 'NATGAS', fallbackPrice: 1.85 },
-  { symbol: 'HG=F', name: 'Copper', display: 'COPPER', fallbackPrice: 3.85 },
+  { symbol: 'GC=F', name: 'Gold', display: 'GOLD' },
+  { symbol: 'CL=F', name: 'Crude Oil', display: 'OIL' },
+  { symbol: 'NG=F', name: 'Natural Gas', display: 'NATGAS' },
+  { symbol: 'HG=F', name: 'Copper', display: 'COPPER' },
 ];
 
 export const MARKET_SYMBOLS = [
-  { symbol: '^GSPC', name: 'S&P 500', display: 'SPX', fallbackPrice: 5080.20 },
-  { symbol: '^IXIC', name: 'NASDAQ', display: 'NDX', fallbackPrice: 15990.50 },
+  { symbol: '^GSPC', name: 'S&P 500', display: 'SPX' },
+  { symbol: '^IXIC', name: 'NASDAQ', display: 'NDX' },
 ];
 
 export class MarketService {
   private assets: MarketAsset[] = [];
 
   constructor() {
-    // Initialisation avec des valeurs de secours
+    // Initialisation vide, en attente de la vraie API
     const all = [...COMMODITIES, ...MARKET_SYMBOLS];
     this.assets = all.map(a => ({
       ...a,
-      price: a.fallbackPrice,
+      price: 0,
       change: 0,
       changePercent: 0
     }));
   }
 
-  // Fonction pour récupérer les vrais prix actuels du marché
+  // Fonction qui interroge l'API LIVE de Yahoo Finance
   private async fetchRealPrices() {
     try {
-      // On groupe tous les symboles dans une seule requête pour ne pas bloquer le proxy
-      const symbols = [...COMMODITIES, ...MARKET_SYMBOLS].map(s => s.symbol).join(',');
+      const symbols = this.assets.map(a => a.symbol).join(',');
       const targetUrl = `https://query1.finance.yahoo.com/v7/finance/quote?symbols=${symbols}`;
-      const proxyUrl = `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(targetUrl)}`;
+      
+      // Utilisation de corsproxy.io, conçu spécifiquement pour contourner les blocages d'API
+      const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(targetUrl)}`;
 
       const response = await fetch(proxyUrl);
+      if (!response.ok) throw new Error('Erreur réseau Proxy');
+      
       const data = await response.json();
+      const results = data.quoteResponse?.result;
 
-      if (data && data.quoteResponse && data.quoteResponse.result) {
-        const results = data.quoteResponse.result;
-        
-        // On met à jour nos assets avec les VRAIS prix de Yahoo Finance
+      if (results && results.length > 0) {
         this.assets = this.assets.map(asset => {
           const realData = results.find((r: any) => r.symbol === asset.symbol);
           if (realData) {
             return {
               ...asset,
-              price: realData.regularMarketPrice,
-              change: realData.regularMarketChange,
-              changePercent: realData.regularMarketChangePercent
+              price: realData.regularMarketPrice || 0,
+              change: realData.regularMarketChange || 0,
+              changePercent: realData.regularMarketChangePercent || 0
             };
           }
           return asset;
         });
-        console.log("[Yahoo Finance] Vrais cours du marché chargés !");
       }
     } catch (error) {
-      console.warn("Impossible de joindre Yahoo Finance, utilisation des prix de secours.", error);
+      console.error("Impossible de récupérer les cours Yahoo Finance:", error);
     }
   }
 
-  // On lance le flux
+  // S'abonne au flux (Mise à jour toutes les 60 secondes pour ne pas être banni par l'API gratuite)
   public async subscribeToLiveUpdates(callback: (data: MarketAsset[]) => void) {
-    // 1. On va chercher la vraie donnée d'aujourd'hui d'abord
+    // 1. Premier chargement immédiat
     await this.fetchRealPrices();
-    callback(this.assets);
+    callback([...this.assets]);
 
-    // 2. On lance l'animation de trading (micro-fluctuations réalistes)
-    setInterval(() => {
-      this.assets = this.assets.map(asset => {
-        // Le gaz naturel bouge plus vite que le S&P 500
-        const volatility = asset.symbol === 'NG=F' ? 0.001 : 0.0003; 
-        const changeFactor = 1 + (Math.random() * volatility * 2 - volatility);
-        
-        const newPrice = asset.price * changeFactor;
-        const diff = newPrice - asset.price;
-        
-        return {
-          ...asset,
-          price: newPrice,
-          change: asset.change + diff,
-          changePercent: asset.changePercent + (diff / asset.price * 100)
-        };
-      });
+    // 2. Requête en boucle toutes les minutes
+    setInterval(async () => {
+      await this.fetchRealPrices();
       callback([...this.assets]);
-    }, 2000); // Mise à jour toutes les 2 secondes
+    }, 60000); 
   }
 }
