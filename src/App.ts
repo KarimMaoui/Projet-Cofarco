@@ -2,8 +2,9 @@
 import { DeckGLMap } from './components/DeckGLMap';
 import { MaritimePanel } from './components/MaritimePanel';
 import { CascadePanel } from './components/CascadePanel';
+import { LiveNewsPanel } from './components/LiveNewsPanel';
 
-// Uniquement les VRAIES API
+// Imports des services API réelles
 import { fetchLiveEarthquakes, fetchLiveNaturalEvents } from './services/api';
 import { fetchLiveFires } from './services/wildfires';
 
@@ -29,23 +30,21 @@ export class App {
         zoom: 3.5,
         pan: { x: 0, y: 0 },
         layers: {
-          pipelines: true,
-          ports: true,
-          waterways: true,
-          conflicts: true,
-          minerals: true,
-          earthquakes: true, 
-          nasa: true,
-          fires: true
+          pipelines: true, ports: true, waterways: true, conflicts: true,
+          earthquakes: true, nasa: true, fires: true
         }
       });
     }
 
     const panelsContainer = document.getElementById('panels-container');
     if (panelsContainer) {
+      // 1. Médias (Vidéo) - Prend 2 colonnes grâce au style appliqué dans sa classe
+      panelsContainer.appendChild(new LiveNewsPanel().element);
+      
+      // 2. Analytique (Données textuelles) - Prennent 1 colonne chacun
       this.maritimePanel = new MaritimePanel();
       this.cascadePanel = new CascadePanel();
-
+      
       panelsContainer.appendChild(this.maritimePanel.element);
       panelsContainer.appendChild(this.cascadePanel.element);
 
@@ -58,28 +57,18 @@ export class App {
 
   private async loadRealTimeData() {
     try {
-      // 100% Données Réelles
       const [earthquakes, naturalEvents, fires] = await Promise.all([
         fetchLiveEarthquakes(),
         fetchLiveNaturalEvents(),
         fetchLiveFires()
       ]);
       
-      if (this.map) {
-        this.map.updateLiveData(earthquakes, naturalEvents, fires);
-      }
-
-      if (this.maritimePanel) {
-        this.maritimePanel.updateData(naturalEvents);
-      }
-      if (this.cascadePanel) {
-        this.cascadePanel.updateData(earthquakes, fires);
-      }
+      if (this.map) this.map.updateLiveData(earthquakes, naturalEvents, fires);
+      if (this.maritimePanel) this.maritimePanel.updateData(naturalEvents);
+      if (this.cascadePanel) this.cascadePanel.updateData(earthquakes, fires);
 
     } catch (err) {
-      console.error("Erreur de récupération", err);
-      if (this.maritimePanel) this.maritimePanel.setContent(`<div style="color:#ff4444; padding:16px;">Erreur API NASA</div>`);
-      if (this.cascadePanel) this.cascadePanel.setContent(`<div style="color:#ff4444; padding:16px;">Erreur API USGS</div>`);
+      console.error("Erreur API", err);
     }
   }
 
@@ -90,22 +79,16 @@ export class App {
           <div style="font-size: 14px; font-weight: 800; color: #44ff88; letter-spacing: 1px;">COFARCO RISK MONITOR</div>
           <div style="font-size: 10px; color: #888; text-transform: uppercase; letter-spacing: 2px;">Commodities & Trade Finance</div>
         </div>
-        <div style="display: flex; align-items: center; gap: 8px;">
-           <div style="width: 8px; height: 8px; border-radius: 50%; background: #ff4444; animation: pulse 1.5s infinite;"></div>
-           <span style="font-size: 10px; color: #fff; font-weight: bold; letter-spacing: 1px;">LIVE (USGS / NASA FIRMS)</span>
-        </div>
       </header>
       
       <main class="main-content" style="display: flex; flex-direction: column; height: calc(100vh - 40px); overflow-y: auto; background: #0a0a0a;">
-        <section class="map-section" style="height: 55vh; min-height: 400px; position: relative; flex-shrink: 0; border-bottom: 1px solid #2a2a2a;">
+        <section class="map-section" style="height: 50vh; min-height: 400px; position: relative; flex-shrink: 0; border-bottom: 1px solid #2a2a2a;">
           <div id="map-container" style="position: absolute; inset: 0;"></div>
         </section>
-        <section id="panels-container" class="panels-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 12px; padding: 16px;">
+        
+        <section id="panels-container" class="panels-grid" style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; padding: 16px;">
         </section>
       </main>
-      <style>
-        @keyframes pulse { 0% { opacity: 1; box-shadow: 0 0 0 0 rgba(255,68,68,0.4); } 70% { opacity: 0.5; box-shadow: 0 0 0 6px rgba(255,68,68,0); } 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(255,68,68,0); } }
-      </style>
     `;
   }
 }
