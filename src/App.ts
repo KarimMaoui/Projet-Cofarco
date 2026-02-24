@@ -4,15 +4,11 @@ import { MaritimePanel } from './components/MaritimePanel';
 import { CascadePanel } from './components/CascadePanel';
 import { LiveNewsPanel } from './components/LiveNewsPanel';
 import { ClimatePanel } from './components/ClimatePanel';
-import { MacroPanel } from './components/MacroPanel';
-import { MarketPanel } from './components/MarketPanel'; // NOUVEL IMPORT
 
 // Services
 import { fetchLiveEarthquakes, fetchLiveNaturalEvents } from './services/api';
 import { fetchLiveFires } from './services/wildfires';
 import { ClimateService } from './services/ClimateService';
-import { MacroService } from './services/MacroService';
-import { MarketService } from './services/MarketService'; // NOUVEL IMPORT
 
 export class App {
   private containerId: string;
@@ -20,13 +16,9 @@ export class App {
   private maritimePanel!: MaritimePanel;
   private cascadePanel!: CascadePanel;
   private climatePanel!: ClimatePanel;
-  private macroPanel!: MacroPanel; 
-  private marketPanel!: MarketPanel; // REMPLACE oilPanel
-  private marketService: MarketService; // NOUVEAU SERVICE LIVE
 
   constructor(containerId: string) {
     this.containerId = containerId;
-    this.marketService = new MarketService(); // Initialisation du flux continu
   }
 
   public async init(): Promise<void> {
@@ -57,22 +49,16 @@ export class App {
       this.maritimePanel = new MaritimePanel();
       this.cascadePanel = new CascadePanel();
       this.climatePanel = new ClimatePanel();
-      this.macroPanel = new MacroPanel();
-      this.marketPanel = new MarketPanel(); // INITIALISATION DU TERMINAL
       
       // Ajout des éléments au DOM
       panelsContainer.appendChild(this.maritimePanel.element);
       panelsContainer.appendChild(this.cascadePanel.element);
       panelsContainer.appendChild(this.climatePanel.element);
-      panelsContainer.appendChild(this.macroPanel.element);
-      panelsContainer.appendChild(this.marketPanel.element); // AJOUT AU DOM
 
       // États de chargement visuels
       this.maritimePanel.showLoading("Analyse NASA EONET...");
       this.cascadePanel.showLoading("Flux USGS en cours...");
       this.climatePanel.showLoading("Calcul anomalies Open-Meteo...");
-      this.macroPanel.showLoading("Indicateurs World Bank...");
-      this.marketPanel.showLoading("Connexion au flux de marché...");
     }
 
     // 3. Lancement du chargement des données
@@ -81,42 +67,28 @@ export class App {
 
   private async loadRealTimeData() {
     try {
-      const macroCountries = ['US', 'CN', 'BR', 'SA']; 
-
-      // On récupère toutes les données
+      // On récupère uniquement les données fiables
       const results = await Promise.allSettled([
         fetchLiveEarthquakes(),
         fetchLiveNaturalEvents(),
         fetchLiveFires(),
-        ClimateService.fetchAnomalies(),
-        Promise.all(macroCountries.map(code => MacroService.fetchCountryScore(code)))
+        ClimateService.fetchAnomalies()
       ]);
 
       const earthquakes = results[0].status === 'fulfilled' ? results[0].value : [];
       const naturalEvents = results[1].status === 'fulfilled' ? results[1].value : [];
       
-      // 🚨 LA CORRECTION EST ICI : On s'adapte automatiquement au format des feux
+      // Sécurité pour s'adapter automatiquement au format des feux
       const wildfireResult = results[2].status === 'fulfilled' ? results[2].value : [];
       const fires = Array.isArray(wildfireResult) ? wildfireResult : (wildfireResult.fires || []);
       
       const climate = results[3].status === 'fulfilled' ? results[3].value : [];
-      const macroResults = results[4].status === 'fulfilled' ? results[4].value : [];
-
-      const validMacroScores = macroResults.filter((s): s is any => s !== null);
 
       // Mises à jour des panneaux classiques avec la donnée sécurisée
       if (this.map) this.map.updateLiveData(earthquakes, naturalEvents, fires);
       if (this.maritimePanel) this.maritimePanel.updateData(naturalEvents);
       if (this.cascadePanel) this.cascadePanel.updateData(earthquakes, fires);
       if (this.climatePanel) this.climatePanel.updateData(climate);
-      if (this.macroPanel) this.macroPanel.updateData(validMacroScores);
-
-      // --- FLUX CONTINU (Le terminal de marché) ---
-      if (this.marketPanel) {
-        this.marketService.subscribeToLiveUpdates((data) => {
-          this.marketPanel.updateData(data);
-        });
-      }
 
     } catch (err) {
       console.error("Erreur critique dans le flux de données:", err);
