@@ -7,6 +7,7 @@ export interface MapLayers {
   conflicts: boolean;
   waterways: boolean;
   bases: boolean;
+  hotspots?: boolean;
 }
 
 export type PipelineType = 'oil' | 'gas' | 'products';
@@ -17,8 +18,9 @@ export interface Pipeline {
   name: string;
   type: PipelineType;
   status: PipelineStatus;
-  points: [number, number][]; // [lon, lat] pairs
+  points: [number, number][];
   capacity?: string;
+  length?: string;
   operator?: string;
   countries?: string[];
 }
@@ -33,7 +35,7 @@ export interface Port {
   country: string;
   type: PortType;
   rank?: number;
-  note?: string;
+  note: string;
 }
 
 export interface ConflictZone {
@@ -43,7 +45,13 @@ export interface ConflictZone {
   center: [number, number];
   intensity?: 'high' | 'medium' | 'low';
   parties?: string[];
+  casualties?: string;
+  displaced?: string;
+  keywords?: string[];
+  startDate?: string;
+  location?: string;
   description?: string;
+  keyDevelopments?: string[];
 }
 
 export interface StrategicWaterway {
@@ -54,6 +62,30 @@ export interface StrategicWaterway {
   description?: string;
 }
 
+export interface Hotspot {
+  id: string;
+  name: string;
+  subtext?: string;
+  lat: number;
+  lon: number;
+  location?: string;
+  keywords: string[];
+  agencies?: string[];
+  description?: string;
+  status?: string;
+  escalationScore?: number;
+  escalationTrend?: 'escalating' | 'stable' | 'de-escalating';
+  escalationIndicators?: string[];
+  whyItMatters?: string;
+  history?: {
+    lastMajorEvent?: string;
+    lastMajorEventDate?: string;
+    precedentCount?: number;
+    precedentDescription?: string;
+    cyclicalRisk?: string;
+  };
+}
+
 export interface MilitaryBase {
   id: string;
   name: string;
@@ -61,6 +93,8 @@ export interface MilitaryBase {
   lon: number;
   type: string;
   country?: string;
+  arm?: string;
+  status?: string;
   description?: string;
 }
 
@@ -68,5 +102,8 @@ export interface UnderseaCable {
   id: string;
   name: string;
   points: [number, number][];
+  major?: boolean;
   capacityTbps?: number;
+  rfsYear?: number;
+  owners?: string[];
 }
