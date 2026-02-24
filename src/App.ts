@@ -4,6 +4,10 @@ import { MaritimePanel } from './components/MaritimePanel';
 import { CascadePanel } from './components/CascadePanel';
 import { LiveNewsPanel } from './components/LiveNewsPanel';
 import { ClimatePanel } from './components/ClimatePanel';
+import { MacroService } from './services/MacroService';
+import { MacroPanel } from './components/MacroPanel';
+import { OilService } from './services/OilService';
+import { OilPanel } from './components/OilPanel';
 
 // Services de données réelles
 import { fetchLiveEarthquakes, fetchLiveNaturalEvents } from './services/api';
