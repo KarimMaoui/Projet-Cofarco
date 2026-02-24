@@ -1,0 +1,70 @@
+/* src/styles/main.css */
+
+:root {
+  --bg: #0a0a0a;
+  --surface: #141414;
+  --border: #2a2a2a;
+  --text: #e8e8e8;
+  --text-dim: #888;
+  --accent: #44ff88;
+  --font-body: system-ui, -apple-system, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  background-color: var(--bg);
+  color: var(--text);
+  font-family: var(--font-body);
+  overflow: hidden;
+}
+
+/* Scrollbar personnalisée style "Dashboard" */
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: var(--bg);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--text-dim);
+}
+
+/* Tooltip de Deck.GL (pour afficher les infos au survol de la carte) */
+.deckgl-tooltip {
+  background: var(--surface);
+  padding: 10px 14px;
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--accent);
+  border-radius: 4px;
+  font-size: 12px;
+  color: var(--text);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.8);
+  pointer-events: none;
+  line-height: 1.5;
+}
+
+.deckgl-tooltip strong {
+  color: var(--accent);
+  font-size: 14px;
+  display: block;
+  margin-bottom: 4px;
+}
+
+/* Surcharge pour forcer le fond transparent de MapLibre (Dark mode) */
+.maplibregl-map {
+  background: transparent !important;
+}
+
+/* Surcharge pour retirer le logo Mapbox/Maplibre si désiré */
+.maplibregl-control-container {
+  display: none;
+}
