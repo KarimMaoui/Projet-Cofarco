@@ -82,36 +82,33 @@ export class App {
     this.loadRealTimeData();
   }
 
-  private async loadRealTimeData() {
-    try {
-      const macroCountries = ['US', 'CN', 'BR', 'SA']; 
+  // Dans src/App.ts
+private async loadRealTimeData() {
+  // On lance tout en parallèle mais on traite les erreurs individuellement
+  const results = await Promise.allSettled([
+    fetchLiveEarthquakes(),
+    fetchLiveNaturalEvents(),
+    fetchLiveFires(),
+    ClimateService.fetchAnomalies(),
+    OilService.fetchPrices(),
+    // ... tes autres services ...
+  ]);
 
-      // On récupère wildfireData qui contient { fires, stats }
-      const [earthquakes, naturalEvents, wildfireData, climateAnomalies, macroResults, oilPrices] = await Promise.all([
-        fetchLiveEarthquakes(),
-        fetchLiveNaturalEvents(),
-        fetchLiveFires(), // Retourne maintenant l'objet statistique
-        ClimateService.fetchAnomalies(),
-        Promise.all(macroCountries.map(code => MacroService.fetchCountryScore(code))),
-        OilService.fetchPrices()
-      ]);
+  // Extraction sécurisée des données
+  const earthquakes = results[0].status === 'fulfilled' ? results[0].value : [];
+  const naturalEvents = results[1].status === 'fulfilled' ? results[1].value : [];
+  const wildfireData = results[2].status === 'fulfilled' ? results[2].value : { fires: [], stats: [] };
+  const climate = results[3].status === 'fulfilled' ? results[3].value : [];
+  const oil = results[4].status === 'fulfilled' ? results[4].value : [];
 
-      const validMacroScores = macroResults.filter((s): s is any => s !== null);
-      const fires = wildfireData.fires; // Les points pour la carte
-      const fireStats = wildfireData.stats; // Les stats pour le tableau
-
-      // Mises à jour des composants
-      if (this.map) this.map.updateLiveData(earthquakes, naturalEvents, fires);
-      if (this.maritimePanel) this.maritimePanel.updateData(naturalEvents);
-      if (this.cascadePanel) this.cascadePanel.updateData(earthquakes, fires);
-      if (this.climatePanel) this.climatePanel.updateData(climateAnomalies);
-      if (this.macroPanel) this.macroPanel.updateData(validMacroScores);
-      if (this.oilPanel) this.oilPanel.updateData(oilPrices);
-      
-      // Mise à jour du nouveau panneau thermique
-      if (this.satelliteFiresPanel) {
-        this.satelliteFiresPanel.updateData(fireStats, fires.length);
-      }
+  // Mises à jour individuelles (si l'un plante, les autres s'affichent quand même)
+  if (this.map) this.map.updateLiveData(earthquakes, naturalEvents, wildfireData.fires);
+  if (this.maritimePanel) this.maritimePanel.updateData(naturalEvents);
+  if (this.cascadePanel) this.cascadePanel.updateData(earthquakes, wildfireData.fires);
+  if (this.climatePanel) this.climatePanel.updateData(climate);
+  if (this.oilPanel) this.oilPanel.updateData(oil);
+  if (this.satelliteFiresPanel) this.satelliteFiresPanel.updateData(wildfireData.stats, wildfireData.fires.length);
+}
 
     } catch (err) {
       console.error("Erreur flux de données globale:", err);
