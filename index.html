@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Cofarco Risk Monitor - Commodities & Trade Finance</title>
+    <meta name="description" content="Dashboard d'analyse des risques géopolitiques et flux de matières premières." />
+    
+    <link rel="stylesheet" href="/src/styles/main.css" />
+    <style>
+      /* Un skeleton loader ultra-basique pour le chargement */
+      body { margin: 0; background: #0a0a0a; color: #fff; font-family: system-ui, sans-serif; }
+      #app { display: flex; flex-direction: column; height: 100vh; width: 100vw; overflow: hidden; }
+      .header { height: 40px; background: #141414; border-bottom: 1px solid #2a2a2a; display: flex; align-items: center; padding: 0 16px; font-weight: bold; letter-spacing: 1px; color: #fff; }
+      .main-content { flex: 1; display: flex; flex-direction: column; }
+      .map-section { height: 60vh; background: #020a08; border-bottom: 1px solid #2a2a2a; position: relative; }
+      #deckgl-basemap { position: absolute; inset: 0; }
+      .panels-grid { flex: 1; display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 8px; padding: 8px; background: #0a0a0a; overflow-y: auto; }
+    </style>
+  </head>
+  <body>
+    <div id="app">
+      </div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
