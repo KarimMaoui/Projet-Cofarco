@@ -10,10 +10,22 @@ export interface MapFire {
   acq_date: string;
 }
 
-export async function fetchLiveFires(): Promise<MapFire[]> {
+export async function fetchLiveFires() {
+  const targetUrl = "https://firms.modaps.eosdis.nasa.gov/data/active_fire/suomi-npp-viirs-c2/csv/SUOMI_VIIRS_C2_Global_24h.csv";
+  // Utilisation du proxy pour contourner le blocage CORS
+  const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(targetUrl)}`;
+
   try {
-    const url = 'https://firms.modaps.eosdis.nasa.gov/data/active_fire/suomi-npp-viirs-c2/csv/SUOMI_VIIRS_C2_Global_24h.csv';
-    const response = await fetch(url);
+    const response = await fetch(proxyUrl);
+    const json = await response.json();
+    const csvData = json.contents; // Le contenu du CSV est dans la propriété contents
+    
+    // ... reste de ton code pour parser le CSV ...
+  } catch (error) {
+    console.error("Erreur NASA FIRMS:", error);
+    return [];
+  }
+}
     
     if (!response.ok) throw new Error('Erreur réseau');
     
