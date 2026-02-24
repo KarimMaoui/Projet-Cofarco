@@ -6,7 +6,6 @@ import { LiveNewsPanel } from './components/LiveNewsPanel';
 import { ClimatePanel } from './components/ClimatePanel';
 import { MacroPanel } from './components/MacroPanel';
 import { OilPanel } from './components/OilPanel';
-import { SatelliteFiresPanel } from './components/SatelliteFiresPanel';
 
 // Services
 import { fetchLiveEarthquakes, fetchLiveNaturalEvents } from './services/api';
@@ -23,7 +22,6 @@ export class App {
   private climatePanel!: ClimatePanel;
   private macroPanel!: MacroPanel; 
   private oilPanel!: OilPanel;
-  private satelliteFiresPanel!: SatelliteFiresPanel;
 
   constructor(containerId: string) {
     this.containerId = containerId;
@@ -53,19 +51,17 @@ export class App {
       // Panneau News (Prend 2 colonnes)
       panelsContainer.appendChild(new LiveNewsPanel().element);
       
-      // Initialisation de TOUTES les instances
+      // Initialisation
       this.maritimePanel = new MaritimePanel();
       this.cascadePanel = new CascadePanel();
       this.climatePanel = new ClimatePanel();
       this.macroPanel = new MacroPanel();
       this.oilPanel = new OilPanel();
-      this.satelliteFiresPanel = new SatelliteFiresPanel();
       
       // Ajout des éléments au DOM
       panelsContainer.appendChild(this.maritimePanel.element);
       panelsContainer.appendChild(this.cascadePanel.element);
       panelsContainer.appendChild(this.climatePanel.element);
-      panelsContainer.appendChild(this.satelliteFiresPanel.element);
       panelsContainer.appendChild(this.macroPanel.element);
       panelsContainer.appendChild(this.oilPanel.element);
 
@@ -73,7 +69,6 @@ export class App {
       this.maritimePanel.showLoading("Analyse NASA EONET...");
       this.cascadePanel.showLoading("Flux USGS en cours...");
       this.climatePanel.showLoading("Calcul anomalies Open-Meteo...");
-      this.satelliteFiresPanel.showLoading("Scan thermique VIIRS...");
       this.macroPanel.showLoading("Indicateurs World Bank...");
       this.oilPanel.showLoading("Marchés Énergie...");
     }
@@ -86,7 +81,7 @@ export class App {
     try {
       const macroCountries = ['US', 'CN', 'BR', 'SA']; 
 
-      // On lance tout en parallèle mais on traite les erreurs individuellement (Promise.allSettled)
+      // Promise.allSettled protège l'application si un service plante
       const results = await Promise.allSettled([
         fetchLiveEarthquakes(),
         fetchLiveNaturalEvents(),
@@ -96,7 +91,6 @@ export class App {
         OilService.fetchPrices()
       ]);
 
-      // Extraction sécurisée des données (si un service plante, les autres continuent)
       const earthquakes = results[0].status === 'fulfilled' ? results[0].value : [];
       const naturalEvents = results[1].status === 'fulfilled' ? results[1].value : [];
       const wildfireData = results[2].status === 'fulfilled' ? results[2].value : { fires: [], stats: [] };
@@ -106,12 +100,11 @@ export class App {
 
       const validMacroScores = macroResults.filter((s): s is any => s !== null);
 
-      // Mises à jour individuelles
+      // Mises à jour
       if (this.map) this.map.updateLiveData(earthquakes, naturalEvents, wildfireData.fires);
       if (this.maritimePanel) this.maritimePanel.updateData(naturalEvents);
       if (this.cascadePanel) this.cascadePanel.updateData(earthquakes, wildfireData.fires);
       if (this.climatePanel) this.climatePanel.updateData(climate);
-      if (this.satelliteFiresPanel) this.satelliteFiresPanel.updateData(wildfireData.stats, wildfireData.fires.length);
       if (this.macroPanel) this.macroPanel.updateData(validMacroScores);
       if (this.oilPanel) this.oilPanel.updateData(oil);
 
