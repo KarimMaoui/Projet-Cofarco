@@ -10,22 +10,25 @@ export interface FireRegionStats {
 }
 
 export async function fetchLiveFires(): Promise<{ fires: MapFire[], stats: FireRegionStats[] }> {
-  // On utilise l'URL "Europe" pour la Turquie/Méditerranée, c'est plus léger.
-  const targetUrl = "https://firms.modaps.eosdis.nasa.gov/data/active_fire/suomi-npp-viirs-c2/csv/SUOMI_VIIRS_C2_Europe_24h.csv";
+  // On peut même remettre le Global_24h de la NASA avec ce proxy plus puissant
+  const targetUrl = "https://firms.modaps.eosdis.nasa.gov/data/active_fire/suomi-npp-viirs-c2/csv/SUOMI_VIIRS_C2_Global_24h.csv";
   
-  // Utilisation du mode 'raw' du proxy : plus rapide et plus stable pour le CSV
-  const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(targetUrl)}`;
+  // NOUVEAU PROXY : Plus stable et ne bloque pas au bout de 5 rafraîchissements
+  const proxyUrl = `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(targetUrl)}`;
 
   try {
     const response = await fetch(proxyUrl);
-    if (!response.ok) throw new Error('Proxy instable');
+    if (!response.ok) throw new Error('Le proxy Codetabs est inaccessible');
     
+    // Codetabs renvoie le texte pur directement, pas besoin de chercher un objet JSON
     const csvData = await response.text();
+    
     if (!csvData || csvData.length < 100) return { fires: [], stats: [] };
 
     const rows = csvData.split('\n').slice(1);
     const fires: MapFire[] = [];
     const regionGroups: Record<string, MapFire[]> = {};
+
 
     for (const row of rows) {
       const cols = row.split(',');
