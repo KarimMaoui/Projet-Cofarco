@@ -3,13 +3,20 @@ import { DeckGLMap } from './components/DeckGLMap';
 import { MaritimePanel } from './components/MaritimePanel';
 import { CascadePanel } from './components/CascadePanel';
 
-// Imports des services API (assure-toi d'avoir créé le fichier src/services/api.ts et src/services/wildfires.ts)
+// Imports des services API réelles
 import { fetchLiveEarthquakes, fetchLiveNaturalEvents } from './services/api';
 import { fetchLiveFires } from './services/wildfires';
+
+// Imports des services API simulées (Mock)
+import { fetchLiveAisData } from './services/maritime';
+import { fetchLiveMilitary } from './services/military';
+import { fetchLiveClimateAnomalies } from './services/climate';
 
 export class App {
   private containerId: string;
   private map!: DeckGLMap;
+  private maritimePanel!: MaritimePanel;
+  private cascadePanel!: CascadePanel;
 
   constructor(containerId: string) {
     this.containerId = containerId;
@@ -22,7 +29,7 @@ export class App {
     // 1. Définir le layout principal (Disposition Haut/Bas)
     this.renderLayout(container);
 
-    // 2. Initialiser la carte
+    // 2. Initialiser la carte Deck.GL
     const mapContainer = document.getElementById('map-container');
     if (mapContainer) {
       this.map = new DeckGLMap(mapContainer, {
@@ -45,74 +52,59 @@ export class App {
       });
     }
 
-    // 3. Initialiser les panneaux
+    // 3. Initialiser les panneaux de données
     const panelsContainer = document.getElementById('panels-container');
     if (panelsContainer) {
-      const maritimePanel = new MaritimePanel();
-      const cascadePanel = new CascadePanel();
+      this.maritimePanel = new MaritimePanel();
+      this.cascadePanel = new CascadePanel();
 
-      panelsContainer.appendChild(maritimePanel.element);
-      panelsContainer.appendChild(cascadePanel.element);
+      panelsContainer.appendChild(this.maritimePanel.element);
+      panelsContainer.appendChild(this.cascadePanel.element);
 
-      // Simulation de chargement API pour les widgets
-      maritimePanel.showLoading("Analyse des signaux AIS satellitaires...");
-      cascadePanel.showLoading("Évaluation des risques systémiques...");
-
-      setTimeout(() => {
-        // Injection de données "Mockées" pour la démo Cofarco
-        maritimePanel.updateData(
-          [
-            { region: 'Mer Rouge / Yémen', darkShips: 42, description: "Brouillage GPS massif détecté. Navires éteignant leur transpondeur AIS par sécurité." }
-          ],
-          [
-            { name: 'Cap de Bonne Espérance', deltaPct: 185, impact: "Reroutage massif des navires évitant le canal de Suez. Forte demande de soutage." }
-          ]
-        );
-
-        cascadePanel.updateData([
-          { 
-            chokepoint: "Détroit d'Ormuz", 
-            impacts: [
-              "Hausse des primes d'assurance maritime de Guerre (War Risk) estimée à +0.5%",
-              "Retards anticipés de 4 à 6 jours vers les terminaux méthaniers du Japon et d'Europe",
-            ],
-            commodities: ["Crude Oil (Brent)", "GNL"]
-          },
-          { 
-            chokepoint: "Canal de Panama", 
-            impacts: [
-              "Restriction du tirant d'eau due à la sécheresse persistante",
-              "Baisse du fret de vrac sec (céréales) des États-Unis vers l'Asie"
-            ],
-            commodities: ["Maïs", "Soja", "GNL américain"]
-          }
-        ]);
-      }, 1500);
+      // Afficher l'état de chargement en attendant les API
+      this.maritimePanel.showLoading("Analyse des signaux AIS satellitaires...");
+      this.cascadePanel.showLoading("Évaluation des risques systémiques...");
     }
 
-    // 4. Lancer la récupération des vraies données en arrière-plan
+    // 4. Lancer la récupération de toutes les données en arrière-plan
     this.loadRealTimeData();
   }
 
   private async loadRealTimeData() {
     try {
-      console.log("Téléchargement des données Live (USGS & NASA)...");
+      console.log("Téléchargement des données Live (USGS, NASA, Services Mocks)...");
       
-      // On lance TOUTES les requêtes en parallèle pour gagner du temps
-      const [earthquakes, naturalEvents, fires] = await Promise.all([
-        fetchLiveEarthquakes(),
-        fetchLiveNaturalEvents(),
-        fetchLiveFires()
+      // On lance TOUTES les requêtes en parallèle pour des performances maximales
+      const [earthquakes, naturalEvents, fires, ais, military, climate] = await Promise.all([
+        fetchLiveEarthquakes(),       // Vraie API
+        fetchLiveNaturalEvents(),     // Vraie API
+        fetchLiveFires(),             // Vraie API
+        fetchLiveAisData(),           // API Simulée
+        fetchLiveMilitary(),          // API Simulée
+        fetchLiveClimateAnomalies()   // API Simulée
       ]);
       
       console.log(`Données reçues : ${earthquakes.length} séismes, ${naturalEvents.length} alertes NASA, ${fires.length} incendies.`);
       
-      // On envoie les données à la carte pour qu'elle les dessine
+      // Mettre à jour la carte visuelle
       if (this.map) {
-        this.map.updateLiveData(earthquakes, naturalEvents, fires);
+        this.map.updateLiveData({ earthquakes, naturalEvents, fires, ais, military, climate });
       }
+
+      // Mettre à jour les panneaux analytiques
+      if (this.maritimePanel) {
+        this.maritimePanel.updateData(ais, military);
+      }
+      if (this.cascadePanel) {
+        // Le panneau cascade gère déjà l'intégration des anomalies climatiques
+        this.cascadePanel.updateData(climate);
+      }
+
     } catch (err) {
       console.error("Impossible de charger les données Live", err);
+      
+      if (this.maritimePanel) this.maritimePanel.setContent(`<div style="color:#ff4444; font-size:12px; padding: 16px;">Erreur de connexion aux serveurs AIS.</div>`);
+      if (this.cascadePanel) this.cascadePanel.setContent(`<div style="color:#ff4444; font-size:12px; padding: 16px;">Erreur lors de l'évaluation des risques.</div>`);
     }
   }
 
