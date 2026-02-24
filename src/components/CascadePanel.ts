@@ -48,8 +48,3 @@ export class CascadePanel extends Panel {
     this.setContent(html);
   }
 }
-
-    html += '</div>';
-    this.setContent(html);
-  }
-}
