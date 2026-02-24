@@ -81,10 +81,9 @@ export class App {
 
   private async loadRealTimeData() {
     try {
-      // --- PARTIE 1 : DONNÉES PONCTUELLES (Se chargent une fois ou toutes les X minutes) ---
       const macroCountries = ['US', 'CN', 'BR', 'SA']; 
 
-      // On a retiré OilService d'ici car MarketService gère maintenant le pétrole
+      // On récupère toutes les données
       const results = await Promise.allSettled([
         fetchLiveEarthquakes(),
         fetchLiveNaturalEvents(),
@@ -95,21 +94,24 @@ export class App {
 
       const earthquakes = results[0].status === 'fulfilled' ? results[0].value : [];
       const naturalEvents = results[1].status === 'fulfilled' ? results[1].value : [];
-      const wildfireData = results[2].status === 'fulfilled' ? results[2].value : { fires: [], stats: [] };
+      
+      // 🚨 LA CORRECTION EST ICI : On s'adapte automatiquement au format des feux
+      const wildfireResult = results[2].status === 'fulfilled' ? results[2].value : [];
+      const fires = Array.isArray(wildfireResult) ? wildfireResult : (wildfireResult.fires || []);
+      
       const climate = results[3].status === 'fulfilled' ? results[3].value : [];
       const macroResults = results[4].status === 'fulfilled' ? results[4].value : [];
 
       const validMacroScores = macroResults.filter((s): s is any => s !== null);
 
-      // Mises à jour des panneaux classiques
-      if (this.map) this.map.updateLiveData(earthquakes, naturalEvents, wildfireData.fires);
+      // Mises à jour des panneaux classiques avec la donnée sécurisée
+      if (this.map) this.map.updateLiveData(earthquakes, naturalEvents, fires);
       if (this.maritimePanel) this.maritimePanel.updateData(naturalEvents);
-      if (this.cascadePanel) this.cascadePanel.updateData(earthquakes, wildfireData.fires);
+      if (this.cascadePanel) this.cascadePanel.updateData(earthquakes, fires);
       if (this.climatePanel) this.climatePanel.updateData(climate);
       if (this.macroPanel) this.macroPanel.updateData(validMacroScores);
 
-      // --- PARTIE 2 : FLUX CONTINU (Le terminal Bloomberg) ---
-      // On s'abonne aux mises à jour (le widget s'animera tout seul toutes les 2 secondes)
+      // --- FLUX CONTINU (Le terminal de marché) ---
       if (this.marketPanel) {
         this.marketService.subscribeToLiveUpdates((data) => {
           this.marketPanel.updateData(data);
