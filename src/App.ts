@@ -20,6 +20,8 @@ export class App {
   private maritimePanel!: MaritimePanel;
   private cascadePanel!: CascadePanel;
   private climatePanel!: ClimatePanel;
+  private macroPanel!: MacroPanel; 
+  private oilPanel!: OilPanel;
 
   constructor(containerId: string) {
     this.containerId = containerId;
