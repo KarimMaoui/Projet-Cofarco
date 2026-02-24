@@ -2,6 +2,7 @@
 
 export interface MarketAsset {
   symbol: string;
+  cnbcSymbol: string; // NOUVEAU : Le code spécifique pour CNBC
   name: string;
   display: string;
   price: number;
@@ -9,24 +10,23 @@ export interface MarketAsset {
   changePercent: number;
 }
 
-// Les vrais symboles boursiers officiels (Yahoo Finance)
+// Double configuration : Symboles Yahoo + Symboles CNBC
 export const COMMODITIES = [
-  { symbol: 'GC=F', name: 'Gold', display: 'GOLD' },
-  { symbol: 'CL=F', name: 'Crude Oil', display: 'OIL' },
-  { symbol: 'NG=F', name: 'Natural Gas', display: 'NATGAS' },
-  { symbol: 'HG=F', name: 'Copper', display: 'COPPER' },
+  { symbol: 'GC=F', cnbcSymbol: '@GC.1', name: 'Gold', display: 'GOLD' },
+  { symbol: 'CL=F', cnbcSymbol: '@CL.1', name: 'Crude Oil', display: 'OIL' },
+  { symbol: 'NG=F', cnbcSymbol: '@NG.1', name: 'Natural Gas', display: 'NATGAS' },
+  { symbol: 'HG=F', cnbcSymbol: '@HG.1', name: 'Copper', display: 'COPPER' },
 ];
 
 export const MARKET_SYMBOLS = [
-  { symbol: '^GSPC', name: 'S&P 500', display: 'SPX' },
-  { symbol: '^IXIC', name: 'NASDAQ', display: 'NDX' },
+  { symbol: '^GSPC', cnbcSymbol: '.SPX', name: 'S&P 500', display: 'SPX' },
+  { symbol: '^IXIC', cnbcSymbol: '.NDX', name: 'NASDAQ', display: 'NDX' },
 ];
 
 export class MarketService {
   private assets: MarketAsset[] = [];
 
   constructor() {
-    // Initialisation vide, en attente de la vraie API
     const all = [...COMMODITIES, ...MARKET_SYMBOLS];
     this.assets = all.map(a => ({
       ...a,
@@ -36,50 +36,77 @@ export class MarketService {
     }));
   }
 
-  // Fonction qui interroge l'API LIVE de Yahoo Finance
+  // La fonction ultime qui ne passera par AUCUN proxy
   private async fetchRealPrices() {
+    // 🟢 STRATÉGIE 1 : Attaque directe sur CNBC (Zéro CORS, Zéro Proxy)
     try {
-      const symbols = this.assets.map(a => a.symbol).join(',');
-      const targetUrl = `https://query1.finance.yahoo.com/v7/finance/quote?symbols=${symbols}`;
+      const cnbcSymbols = this.assets.map(a => a.cnbcSymbol).join(',');
+      const cnbcUrl = `https://quote.cnbc.com/quote-html-webservice/restQuote/symbolType/symbol?symbols=${cnbcSymbols}&requestMethod=itv&noform=1&fund=1&exthrs=1&output=json`;
       
-      // Utilisation de corsproxy.io, conçu spécifiquement pour contourner les blocages d'API
-      const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(targetUrl)}`;
-
-      const response = await fetch(proxyUrl);
-      if (!response.ok) throw new Error('Erreur réseau Proxy');
-      
+      // Regarde maman, sans proxy !
+      const response = await fetch(cnbcUrl); 
       const data = await response.json();
-      const results = data.quoteResponse?.result;
-
-      if (results && results.length > 0) {
+      const quotes = data?.FormattedQuoteResult?.FormattedQuote;
+      
+      if (quotes) {
+        // CNBC renvoie un objet si 1 résultat, un tableau si plusieurs. On sécurise :
+        const quoteArray = Array.isArray(quotes) ? quotes : [quotes];
+        
         this.assets = this.assets.map(asset => {
-          const realData = results.find((r: any) => r.symbol === asset.symbol);
-          if (realData) {
-            return {
-              ...asset,
-              price: realData.regularMarketPrice || 0,
-              change: realData.regularMarketChange || 0,
-              changePercent: realData.regularMarketChangePercent || 0
-            };
+          const quote = quoteArray.find((q: any) => q.symbol === asset.cnbcSymbol);
+          if (quote && quote.last) {
+            // CNBC envoie des strings formatées (ex: "2,045.50"), on nettoie tout ça
+            const price = parseFloat(quote.last.replace(/,/g, ''));
+            const change = parseFloat(quote.change.replace(/,/g, '')) || 0;
+            const changePercent = parseFloat(quote.change_pct.replace(/%/g, '')) || 0;
+            return { ...asset, price, change, changePercent };
           }
           return asset;
         });
+        
+        console.log("🟢 [Marchés] Succès : Vrais prix récupérés via CNBC !");
+        return; // Mission accomplie, on sort de la fonction.
       }
     } catch (error) {
-      console.error("Impossible de récupérer les cours Yahoo Finance:", error);
+      console.warn("CNBC a échoué, passage au Plan B...");
+    }
+
+    // 🟡 STRATÉGIE 2 : Yahoo Finance "Spark" v8 (Endpoint graphique sans CORS)
+    try {
+      const yahooSymbols = this.assets.map(a => a.symbol).join(',');
+      const yahooUrl = `https://query1.finance.yahoo.com/v8/finance/spark?symbols=${yahooSymbols}`;
+      
+      const response = await fetch(yahooUrl); // Toujours sans proxy !
+      const data = await response.json();
+
+      this.assets = this.assets.map(asset => {
+        const spark = data[asset.symbol];
+        if (spark && spark.meta) {
+          const price = spark.meta.regularMarketPrice;
+          const prevClose = spark.meta.chartPreviousClose || price;
+          const change = price - prevClose;
+          const changePercent = prevClose > 0 ? (change / prevClose) * 100 : 0;
+          return { ...asset, price, change, changePercent };
+        }
+        return asset;
+      });
+      
+      console.log("🟡 [Marchés] Succès : Vrais prix récupérés via Yahoo v8 !");
+    } catch (error) {
+      console.error("🔴 Les deux APIs ont échoué. T'as vraiment pas de chance avec ton réseau.");
     }
   }
 
-  // S'abonne au flux (Mise à jour toutes les 60 secondes pour ne pas être banni par l'API gratuite)
   public async subscribeToLiveUpdates(callback: (data: MarketAsset[]) => void) {
-    // 1. Premier chargement immédiat
+    // 1. Premier chargement immédiat au lancement
     await this.fetchRealPrices();
     callback([...this.assets]);
 
-    // 2. Requête en boucle toutes les minutes
+    // 2. Mise à jour toutes les 15 secondes 
+    // (Comme on n'utilise pas de proxy, on ne risque plus de se faire bannir l'IP par le proxy)
     setInterval(async () => {
       await this.fetchRealPrices();
       callback([...this.assets]);
-    }, 60000); 
+    }, 15000); 
   }
 }
