@@ -1,11 +1,8 @@
 // src/services/MacroService.ts
 
 export interface CountryMacroScore {
-  country: string; 
-  countryName: string;
-  gdpGrowth: number | null; 
-  internetUsers: number | null; 
-  techExports: number | null;
+  country: string; countryName: string;
+  gdpGrowth: number | null; internetUsers: number | null; techExports: number | null;
   compositeScore: number;
 }
 
@@ -26,7 +23,6 @@ export class MacroService {
       const response = await fetch(targetUrl);
       const data = await response.json();
 
-      // Vérification de la structure de la réponse de la Banque Mondiale
       if (!data || !data[1] || data[1].length === 0) return null;
       
       const records = data[1];
