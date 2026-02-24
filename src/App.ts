@@ -3,6 +3,10 @@ import { DeckGLMap } from './components/DeckGLMap';
 import { MaritimePanel } from './components/MaritimePanel';
 import { CascadePanel } from './components/CascadePanel';
 
+// Imports des services API (assure-toi d'avoir créé le fichier src/services/api.ts et src/services/wildfires.ts)
+import { fetchLiveEarthquakes, fetchLiveNaturalEvents } from './services/api';
+import { fetchLiveFires } from './services/wildfires';
+
 export class App {
   private containerId: string;
   private map!: DeckGLMap;
@@ -24,14 +28,19 @@ export class App {
       this.map = new DeckGLMap(mapContainer, {
         zoom: 3.5,
         pan: { x: 0, y: 0 },
-        view: 'mena', // Focus sur le Moyen-Orient et l'Europe par défaut
+        // Couches actives par défaut au chargement
         layers: {
           pipelines: true,
           ports: true,
-          cables: true,
-          conflicts: true,
           waterways: true,
-          bases: true
+          conflicts: true,
+          military: true,
+          ais: true,
+          minerals: false,
+          climate: false,
+          earthquakes: true, 
+          nasa: true,
+          fires: true
         }
       });
     }
@@ -45,7 +54,7 @@ export class App {
       panelsContainer.appendChild(maritimePanel.element);
       panelsContainer.appendChild(cascadePanel.element);
 
-      // Simulation de chargement API
+      // Simulation de chargement API pour les widgets
       maritimePanel.showLoading("Analyse des signaux AIS satellitaires...");
       cascadePanel.showLoading("Évaluation des risques systémiques...");
 
@@ -78,7 +87,32 @@ export class App {
             commodities: ["Maïs", "Soja", "GNL américain"]
           }
         ]);
-      }, 1500); // 1.5s d'effet de chargement pour le côté "temps réel"
+      }, 1500);
+    }
+
+    // 4. Lancer la récupération des vraies données en arrière-plan
+    this.loadRealTimeData();
+  }
+
+  private async loadRealTimeData() {
+    try {
+      console.log("Téléchargement des données Live (USGS & NASA)...");
+      
+      // On lance TOUTES les requêtes en parallèle pour gagner du temps
+      const [earthquakes, naturalEvents, fires] = await Promise.all([
+        fetchLiveEarthquakes(),
+        fetchLiveNaturalEvents(),
+        fetchLiveFires()
+      ]);
+      
+      console.log(`Données reçues : ${earthquakes.length} séismes, ${naturalEvents.length} alertes NASA, ${fires.length} incendies.`);
+      
+      // On envoie les données à la carte pour qu'elle les dessine
+      if (this.map) {
+        this.map.updateLiveData(earthquakes, naturalEvents, fires);
+      }
+    } catch (err) {
+      console.error("Impossible de charger les données Live", err);
     }
   }
 
@@ -91,7 +125,7 @@ export class App {
         </div>
         <div style="display: flex; align-items: center; gap: 8px;">
            <div style="width: 8px; height: 8px; border-radius: 50%; background: #ff4444; animation: pulse 1.5s infinite;"></div>
-           <span style="font-size: 10px; color: #fff; font-weight: bold; letter-spacing: 1px;">LIVE</span>
+           <span style="font-size: 10px; color: #fff; font-weight: bold; letter-spacing: 1px;">LIVE (USGS/NASA)</span>
         </div>
       </header>
       
@@ -102,7 +136,7 @@ export class App {
         </section>
         
         <section id="panels-container" class="panels-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 12px; padding: 16px;">
-          </section>
+        </section>
 
       </main>
       <style>
