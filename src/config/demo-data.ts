@@ -1,31 +1,23 @@
 // src/config/demo-data.ts
 
 export const CRITICAL_MINERALS = [
-  { id: '1', name: 'Salar de Atacama', lat: -23.50, lon: -68.33, mineral: 'Lithium', country: 'Chile', operator: 'SQM', status: 'producing', significance: 'Plus grande réserve de Lithium' },
-  { id: '2', name: 'Mutanda Mine', lat: -10.78, lon: 25.80, mineral: 'Cobalt', country: 'DRC', operator: 'Glencore', status: 'producing', significance: 'Mine critique pour batteries' },
+  // LITHIUM (Crucial pour les batteries VE)
+  { id: 'greenbushes', name: 'Greenbushes', lat: -33.86, lon: 116.01, mineral: 'Lithium', country: 'Australia', operator: 'Talison Lithium', status: 'producing', significance: 'La plus grande mine de lithium en roche dure au monde' },
+  { id: 'atacama', name: 'Salar de Atacama', lat: -23.50, lon: -68.33, mineral: 'Lithium', country: 'Chile', operator: 'SQM/Albemarle', status: 'producing', significance: 'Plus grande source de lithium par saumure' },
+  { id: 'pilgangoora', name: 'Pilgangoora', lat: -21.03, lon: 118.91, mineral: 'Lithium', country: 'Australia', operator: 'Pilbara Minerals', status: 'producing', significance: 'Dépôt majeur de roche dure' },
+  { id: 'silver_peak', name: 'Silver Peak', lat: 37.75, lon: -117.65, country: 'USA', mineral: 'Lithium', operator: 'Albemarle', status: 'producing', significance: 'Seule mine de lithium active aux USA' },
+  
+  // COBALT (Enjeu géopolitique et éthique majeur)
+  { id: 'mutanda', name: 'Mutanda', lat: -10.78, lon: 25.80, mineral: 'Cobalt', country: 'DRC', operator: 'Glencore', status: 'producing', significance: 'La plus grande mine de cobalt au monde' },
+  { id: 'tenke', name: 'Tenke Fungurume', lat: -10.61, lon: 26.16, mineral: 'Cobalt', country: 'DRC', operator: 'CMOC', status: 'producing', significance: 'Source majeure de cobalt (capitaux chinois)' },
+  
+  // TERRES RARES (Monopole chinois)
+  { id: 'bayan_obo', name: 'Bayan Obo', lat: 41.76, lon: 109.95, mineral: 'Terres Rares', country: 'China', operator: 'China Northern Rare Earth', status: 'producing', significance: 'Plus grande mine de terres rares au monde (45% de la prod mondiale)' },
+  { id: 'mountain_pass', name: 'Mountain Pass', lat: 35.47, lon: -115.53, mineral: 'Terres Rares', country: 'USA', operator: 'MP Materials', status: 'producing', significance: 'Principale mine de terres rares aux États-Unis' },
+  { id: 'mount_weld', name: 'Mount Weld', lat: -28.86, lon: 122.17, mineral: 'Terres Rares', country: 'Australia', operator: 'Lynas', status: 'producing', significance: 'Majeure source de terres rares hors de Chine' },
+  
+  // NICKEL
+  { id: 'wedabay', name: 'Weda Bay', lat: 0.47, lon: 127.94, mineral: 'Nickel', country: 'Indonesia', operator: 'Tsingshan/Eramet', status: 'producing', significance: 'Production massive de fonte brute de nickel' },
+  { id: 'norilsk', name: 'Norilsk', lat: 69.33, lon: 88.21, mineral: 'Nickel', country: 'Russia', operator: 'Nornickel', status: 'producing', significance: 'Source majeure de palladium et nickel' },
 ];
 
-export const DEMO_FIRES = [
-  { lat: 31.9, lon: -102.3, brightness: 450, frp: 120, region: "Permian Basin (USA)", note: "Proximité infrastructures pétrolières" },
-  { lat: -21.0, lon: 149.0, brightness: 380, frp: 80, region: "Queensland (Australie)", note: "Risque exportations charbon" }
-];
-
-export const DEMO_WEATHER = [
-  { lat: 25.0, lon: -90.0, severity: 'Extreme', event: 'Ouragan Cat 4', headline: 'Menace sur le Golfe du Mexique (Fermeture raffineries)' },
-  { lat: 10.0, lon: 115.0, severity: 'Severe', event: 'Typhon', headline: 'Perturbation des routes maritimes Mer de Chine' }
-];
-
-export const DEMO_MILITARY = [
-  { lat: 34.0, lon: 35.0, operator: 'usn', type: 'carrier', name: 'USS Gerald R. Ford', heading: 45, isDark: false },
-  { lat: 12.5, lon: 43.5, operator: 'rn', type: 'destroyer', name: 'HMS Diamond (Escorte)', heading: 320, isDark: false },
-  { lat: 26.0, lon: 55.0, operator: 'other', type: 'submarine', name: 'Sous-marin non identifié', heading: 0, isDark: true } // isDark = transpondeur coupé
-];
-
-export const DEMO_AIS_DENSITY = [
-  { lat: 30.0, lon: 32.5, intensity: 0.9, deltaPct: 15, note: "Congestion forte Suez" },
-  { lat: -34.5, lon: 18.5, intensity: 0.6, deltaPct: 45, note: "Reroutage Cap de Bonne Espérance" }
-];
-
-export const DEMO_CLIMATE_ANOMALIES = [
-  { lat: 9.0, lon: -79.5, tempDelta: 0, precipDelta: -0.8, note: "Sécheresse Canal de Panama (Baisse tirant d'eau)" }
-];
