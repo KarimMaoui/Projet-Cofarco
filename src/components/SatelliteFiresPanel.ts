@@ -8,12 +8,17 @@ export class SatelliteFiresPanel extends Panel {
   }
 
   public updateData(stats: FireRegionStats[], totalCount: number) {
-    if (stats.length === 0) {
-      this.setContent('<div style="padding:10px; color:#888;">Scan thermique en cours...</div>');
+    // CORRECTION ICI : On affiche un vrai message si c'est vide
+    if (!stats || stats.length === 0) {
+      this.setContent(`
+        <div style="padding:15px; text-align:center; color:#ff4444; font-family: monospace;">
+          Données thermiques inaccessibles (Proxy bloqué) <br/>
+          ou 0 foyer détecté.
+        </div>
+      `);
       return;
     }
 
-    // Construction des lignes du tableau
     const rows = stats.map(s => {
       const frpStr = s.totalFrp >= 1000 
         ? `${(s.totalFrp / 1000).toFixed(1)}k` 
@@ -45,7 +50,7 @@ export class SatelliteFiresPanel extends Panel {
           <tbody>${rows}</tbody>
         </table>
         <div style="margin-top: 12px; display: flex; justify-content: space-between; font-size: 9px; color: #444; border-top: 1px solid #222; padding-top: 8px;">
-          <span>NASA FIRMS (VIIRS SNPP)</span>
+          <span>NASA FIRMS (VIIRS)</span>
           <span>TOTAL: ${totalCount}</span>
         </div>
       </div>
