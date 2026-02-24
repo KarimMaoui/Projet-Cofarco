@@ -6,6 +6,7 @@ import { LiveNewsPanel } from './components/LiveNewsPanel';
 import { ClimatePanel } from './components/ClimatePanel';
 import { MacroPanel } from './components/MacroPanel';
 import { OilPanel } from './components/OilPanel';
+import { SatelliteFiresPanel } from './components/SatelliteFiresPanel'; // NOUVEAU
 
 // Services
 import { fetchLiveEarthquakes, fetchLiveNaturalEvents } from './services/api';
@@ -22,6 +23,7 @@ export class App {
   private climatePanel!: ClimatePanel;
   private macroPanel!: MacroPanel; 
   private oilPanel!: OilPanel;
+  private satelliteFiresPanel!: SatelliteFiresPanel; // NOUVEAU
 
   constructor(containerId: string) {
     this.containerId = containerId;
@@ -48,27 +50,30 @@ export class App {
     // 2. Initialisation et Ajout des Panneaux
     const panelsContainer = document.getElementById('panels-container');
     if (panelsContainer) {
-      // Panneau News (Prend 2 colonnes par défaut via CSS ou configuration)
+      // Panneau News (Prend 2 colonnes)
       panelsContainer.appendChild(new LiveNewsPanel().element);
       
       // Initialisation de TOUTES les instances
       this.maritimePanel = new MaritimePanel();
       this.cascadePanel = new CascadePanel();
       this.climatePanel = new ClimatePanel();
-      this.macroPanel = new MacroPanel(); // AJOUT CORRIGÉ
-      this.oilPanel = new OilPanel();     // AJOUT CORRIGÉ
+      this.macroPanel = new MacroPanel();
+      this.oilPanel = new OilPanel();
+      this.satelliteFiresPanel = new SatelliteFiresPanel(); // NOUVEAU
       
-      // Ajout des éléments au DOM
+      // Ajout des éléments au DOM (Ordre logique : Risques -> Économie)
       panelsContainer.appendChild(this.maritimePanel.element);
       panelsContainer.appendChild(this.cascadePanel.element);
       panelsContainer.appendChild(this.climatePanel.element);
-      panelsContainer.appendChild(this.macroPanel.element); // AJOUT CORRIGÉ
-      panelsContainer.appendChild(this.oilPanel.element);   // AJOUT CORRIGÉ
+      panelsContainer.appendChild(this.satelliteFiresPanel.element); // NOUVEAU
+      panelsContainer.appendChild(this.macroPanel.element);
+      panelsContainer.appendChild(this.oilPanel.element);
 
       // États de chargement visuels
       this.maritimePanel.showLoading("Analyse NASA EONET...");
       this.cascadePanel.showLoading("Flux USGS en cours...");
       this.climatePanel.showLoading("Calcul anomalies Open-Meteo...");
+      this.satelliteFiresPanel.showLoading("Scan thermique VIIRS..."); // NOUVEAU
       this.macroPanel.showLoading("Indicateurs World Bank...");
       this.oilPanel.showLoading("Marchés Énergie...");
     }
@@ -81,24 +86,32 @@ export class App {
     try {
       const macroCountries = ['US', 'CN', 'BR', 'SA']; 
 
-      const [earthquakes, naturalEvents, fires, climateAnomalies, macroResults, oilPrices] = await Promise.all([
+      // On récupère wildfireData qui contient { fires, stats }
+      const [earthquakes, naturalEvents, wildfireData, climateAnomalies, macroResults, oilPrices] = await Promise.all([
         fetchLiveEarthquakes(),
         fetchLiveNaturalEvents(),
-        fetchLiveFires(),
+        fetchLiveFires(), // Retourne maintenant l'objet statistique
         ClimateService.fetchAnomalies(),
         Promise.all(macroCountries.map(code => MacroService.fetchCountryScore(code))),
         OilService.fetchPrices()
       ]);
 
       const validMacroScores = macroResults.filter((s): s is any => s !== null);
+      const fires = wildfireData.fires; // Les points pour la carte
+      const fireStats = wildfireData.stats; // Les stats pour le tableau
 
-      // Mises à jour des composants avec les données reçues
+      // Mises à jour des composants
       if (this.map) this.map.updateLiveData(earthquakes, naturalEvents, fires);
       if (this.maritimePanel) this.maritimePanel.updateData(naturalEvents);
       if (this.cascadePanel) this.cascadePanel.updateData(earthquakes, fires);
       if (this.climatePanel) this.climatePanel.updateData(climateAnomalies);
       if (this.macroPanel) this.macroPanel.updateData(validMacroScores);
       if (this.oilPanel) this.oilPanel.updateData(oilPrices);
+      
+      // Mise à jour du nouveau panneau thermique
+      if (this.satelliteFiresPanel) {
+        this.satelliteFiresPanel.updateData(fireStats, fires.length);
+      }
 
     } catch (err) {
       console.error("Erreur flux de données globale:", err);
