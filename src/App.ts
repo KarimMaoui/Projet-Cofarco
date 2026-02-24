@@ -4,15 +4,15 @@ import { MaritimePanel } from './components/MaritimePanel';
 import { CascadePanel } from './components/CascadePanel';
 import { LiveNewsPanel } from './components/LiveNewsPanel';
 import { ClimatePanel } from './components/ClimatePanel';
-import { MacroService } from './services/MacroService';
 import { MacroPanel } from './components/MacroPanel';
-import { OilService } from './services/OilService';
 import { OilPanel } from './components/OilPanel';
 
-// Services de données réelles
+// Services
 import { fetchLiveEarthquakes, fetchLiveNaturalEvents } from './services/api';
 import { fetchLiveFires } from './services/wildfires';
 import { ClimateService } from './services/ClimateService';
+import { MacroService } from './services/MacroService';
+import { OilService } from './services/OilService';
 
 export class App {
   private containerId: string;
@@ -45,61 +45,66 @@ export class App {
       });
     }
 
-    // 2. Initialisation des Panneaux
+    // 2. Initialisation et Ajout des Panneaux
     const panelsContainer = document.getElementById('panels-container');
     if (panelsContainer) {
-      // Panneau News (Prend 2 colonnes dans la grille)
+      // Panneau News (Prend 2 colonnes par défaut via CSS ou configuration)
       panelsContainer.appendChild(new LiveNewsPanel().element);
       
-      // Panneaux de données
+      // Initialisation de TOUTES les instances
       this.maritimePanel = new MaritimePanel();
       this.cascadePanel = new CascadePanel();
       this.climatePanel = new ClimatePanel();
+      this.macroPanel = new MacroPanel(); // AJOUT CORRIGÉ
+      this.oilPanel = new OilPanel();     // AJOUT CORRIGÉ
       
+      // Ajout des éléments au DOM
       panelsContainer.appendChild(this.maritimePanel.element);
       panelsContainer.appendChild(this.cascadePanel.element);
       panelsContainer.appendChild(this.climatePanel.element);
+      panelsContainer.appendChild(this.macroPanel.element); // AJOUT CORRIGÉ
+      panelsContainer.appendChild(this.oilPanel.element);   // AJOUT CORRIGÉ
 
-      // États de chargement
+      // États de chargement visuels
       this.maritimePanel.showLoading("Analyse NASA EONET...");
       this.cascadePanel.showLoading("Flux USGS en cours...");
-      this.climatePanel.showLoading("Calcul des anomalies Open-Meteo...");
+      this.climatePanel.showLoading("Calcul anomalies Open-Meteo...");
+      this.macroPanel.showLoading("Indicateurs World Bank...");
+      this.oilPanel.showLoading("Marchés Énergie...");
     }
 
-    // 3. Chargement des données asynchrones
+    // 3. Lancement du chargement des données
     this.loadRealTimeData();
   }
 
-  // Dans ton src/App.ts (Extrait de la mise à jour)
+  private async loadRealTimeData() {
+    try {
+      const macroCountries = ['US', 'CN', 'BR', 'SA']; 
 
-private async loadRealTimeData() {
-  try {
-    // Liste des pays stratégiques pour Cofarco
-    const macroCountries = ['US', 'CN', 'BR', 'SA']; 
+      const [earthquakes, naturalEvents, fires, climateAnomalies, macroResults, oilPrices] = await Promise.all([
+        fetchLiveEarthquakes(),
+        fetchLiveNaturalEvents(),
+        fetchLiveFires(),
+        ClimateService.fetchAnomalies(),
+        Promise.all(macroCountries.map(code => MacroService.fetchCountryScore(code))),
+        OilService.fetchPrices()
+      ]);
 
-    const [earthquakes, naturalEvents, fires, climateAnomalies, macroResults, oilPrices] = await Promise.all([
-      fetchLiveEarthquakes(),
-      fetchLiveNaturalEvents(),
-      fetchLiveFires(),
-      ClimateService.fetchAnomalies(),
-      Promise.all(macroCountries.map(code => MacroService.fetchCountryScore(code))),
-      OilService.fetchPrices() // Si tu as gardé le service Oil
-    ]);
+      const validMacroScores = macroResults.filter((s): s is any => s !== null);
 
-    const validMacroScores = macroResults.filter((s): s is any => s !== null);
+      // Mises à jour des composants avec les données reçues
+      if (this.map) this.map.updateLiveData(earthquakes, naturalEvents, fires);
+      if (this.maritimePanel) this.maritimePanel.updateData(naturalEvents);
+      if (this.cascadePanel) this.cascadePanel.updateData(earthquakes, fires);
+      if (this.climatePanel) this.climatePanel.updateData(climateAnomalies);
+      if (this.macroPanel) this.macroPanel.updateData(validMacroScores);
+      if (this.oilPanel) this.oilPanel.updateData(oilPrices);
 
-    // Mises à jour
-    if (this.map) this.map.updateLiveData(earthquakes, naturalEvents, fires);
-    if (this.maritimePanel) this.maritimePanel.updateData(naturalEvents);
-    if (this.cascadePanel) this.cascadePanel.updateData(earthquakes, fires);
-    if (this.climatePanel) this.climatePanel.updateData(climateAnomalies);
-    if (this.macroPanel) this.macroPanel.updateData(validMacroScores);
-    if (this.oilPanel) this.oilPanel.updateData(oilPrices);
-
-  } catch (err) {
-    console.error("Erreur flux de données:", err);
+    } catch (err) {
+      console.error("Erreur flux de données globale:", err);
+    }
   }
-}
+
   private renderLayout(container: HTMLElement) {
     container.innerHTML = `
       <header class="header" style="height: 40px; background: #141414; border-bottom: 1px solid #2a2a2a; display: flex; align-items: center; padding: 0 20px; justify-content: space-between;">
@@ -114,14 +119,12 @@ private async loadRealTimeData() {
       </header>
       
       <main class="main-content" style="display: flex; flex-direction: column; height: calc(100vh - 40px); background: #0a0a0a; overflow: hidden;">
-        
-        <section class="map-section" style="height: 50vh; min-height: 400px; position: relative; flex-shrink: 0; border-bottom: 1px solid #2a2a2a;">
+        <section class="map-section" style="height: 45vh; min-height: 400px; position: relative; flex-shrink: 0; border-bottom: 1px solid #2a2a2a;">
           <div id="map-container" style="position: absolute; inset: 0;"></div>
         </section>
         
-        <section id="panels-container" class="panels-grid" style="display: grid; grid-template-columns: repeat(4, 1fr); grid-auto-rows: minmax(200px, 1fr); gap: 12px; padding: 16px; overflow-y: auto;">
-          </section>
-
+        <section id="panels-container" class="panels-grid" style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; padding: 16px; overflow-y: auto;">
+        </section>
       </main>
     `;
   }
