@@ -1,11 +1,8 @@
 // src/services/MacroService.ts
 
 export interface CountryMacroScore {
-  country: string;
-  countryName: string;
-  gdpGrowth: number | null;
-  internetUsers: number | null;
-  techExports: number | null;
+  country: string; countryName: string;
+  gdpGrowth: number | null; internetUsers: number | null; techExports: number | null;
   compositeScore: number;
 }
 
@@ -19,32 +16,24 @@ export class MacroService {
   public static async fetchCountryScore(countryCode: string): Promise<CountryMacroScore | null> {
     try {
       const codes = Object.values(INDICATORS).join(';');
-      // per_page=100 est crucial pour recevoir TOUS les indicateurs en une seule page
-      // mrv=1 récupère la "Most Recent Value"
-      const url = `https://api.worldbank.org/v2/country/${countryCode}/indicator/${codes}?format=json&mrv=1&per_page=100`;
+      const targetUrl = `https://api.worldbank.org/v2/country/${countryCode}/indicator/${codes}?format=json&mrv=1&per_page=100`;
       
-      const response = await fetch(url);
-      const data = await response.json();
+      // Ajout du proxy pour éviter le blocage CORS
+      const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(targetUrl)}`;
+      
+      const response = await fetch(proxyUrl);
+      const json = await response.json();
+      const data = JSON.parse(json.contents); // AllOrigins renvoie le texte dans "contents"
 
-      // La Banque Mondiale renvoie [metadata, data_array]
-      if (!data || !data[1] || data[1].length === 0) {
-        console.warn(`Pas de données macro pour ${countryCode}`);
-        return null;
-      }
+      if (!data || !data[1] || data[1].length === 0) return null;
       
       const records = data[1];
-
-      // On cherche chaque indicateur dans le tableau de résultats
-      const getVal = (id: string) => {
-        const entry = records.find((d: any) => d.indicator.id === id);
-        return entry ? entry.value : null;
-      };
+      const getVal = (id: string) => records.find((d: any) => d.indicator.id === id)?.value || null;
 
       const gdp = getVal(INDICATORS.gdpGrowth);
       const internet = getVal(INDICATORS.internetUsers);
       const tech = getVal(INDICATORS.techExports);
 
-      // Calcul du score (pondération : 40% Internet, 40% Tech, 20% PIB)
       const compositeScore = ( (internet || 0) * 0.4 + (tech || 0) * 0.4 + (Math.max(0, gdp || 0) * 10) * 0.2 );
 
       return {
@@ -56,7 +45,7 @@ export class MacroService {
         compositeScore: Math.round(compositeScore)
       };
     } catch (e) {
-      console.error(`Erreur MacroService pour ${countryCode}:`, e);
+      console.error(`Erreur MacroService (${countryCode}):`, e);
       return null;
     }
   }
