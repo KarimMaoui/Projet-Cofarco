@@ -64,31 +64,36 @@ export class App {
     this.loadRealTimeData();
   }
 
-  private async loadRealTimeData() {
-    try {
-      // On récupère TOUTES les vraies données en parallèle
-      const [earthquakes, naturalEvents, fires, climateAnomalies] = await Promise.all([
-        fetchLiveEarthquakes(),
-        fetchLiveNaturalEvents(),
-        fetchLiveFires(),
-        ClimateService.fetchAnomalies()
-      ]);
-      
-      // Mise à jour de la carte
-      if (this.map) {
-        this.map.updateLiveData(earthquakes, naturalEvents, fires);
-      }
+  // Dans ton src/App.ts (Extrait de la mise à jour)
 
-      // Mise à jour des panneaux
-      if (this.maritimePanel) this.maritimePanel.updateData(naturalEvents);
-      if (this.cascadePanel) this.cascadePanel.updateData(earthquakes, fires);
-      if (this.climatePanel) this.climatePanel.updateData(climateAnomalies);
+private async loadRealTimeData() {
+  try {
+    // Liste des pays stratégiques pour Cofarco
+    const macroCountries = ['US', 'CN', 'BR', 'SA']; 
 
-    } catch (err) {
-      console.error("Erreur globale de chargement des données:", err);
-    }
+    const [earthquakes, naturalEvents, fires, climateAnomalies, macroResults, oilPrices] = await Promise.all([
+      fetchLiveEarthquakes(),
+      fetchLiveNaturalEvents(),
+      fetchLiveFires(),
+      ClimateService.fetchAnomalies(),
+      Promise.all(macroCountries.map(code => MacroService.fetchCountryScore(code))),
+      OilService.fetchPrices() // Si tu as gardé le service Oil
+    ]);
+
+    const validMacroScores = macroResults.filter((s): s is any => s !== null);
+
+    // Mises à jour
+    if (this.map) this.map.updateLiveData(earthquakes, naturalEvents, fires);
+    if (this.maritimePanel) this.maritimePanel.updateData(naturalEvents);
+    if (this.cascadePanel) this.cascadePanel.updateData(earthquakes, fires);
+    if (this.climatePanel) this.climatePanel.updateData(climateAnomalies);
+    if (this.macroPanel) this.macroPanel.updateData(validMacroScores);
+    if (this.oilPanel) this.oilPanel.updateData(oilPrices);
+
+  } catch (err) {
+    console.error("Erreur flux de données:", err);
   }
-
+}
   private renderLayout(container: HTMLElement) {
     container.innerHTML = `
       <header class="header" style="height: 40px; background: #141414; border-bottom: 1px solid #2a2a2a; display: flex; align-items: center; padding: 0 20px; justify-content: space-between;">
