@@ -5,14 +5,14 @@ import { CascadePanel } from './components/CascadePanel';
 import { LiveNewsPanel } from './components/LiveNewsPanel';
 import { ClimatePanel } from './components/ClimatePanel';
 import { MacroPanel } from './components/MacroPanel';
-import { OilPanel } from './components/OilPanel';
+import { MarketPanel } from './components/MarketPanel'; // NOUVEL IMPORT
 
 // Services
 import { fetchLiveEarthquakes, fetchLiveNaturalEvents } from './services/api';
 import { fetchLiveFires } from './services/wildfires';
 import { ClimateService } from './services/ClimateService';
 import { MacroService } from './services/MacroService';
-import { OilService } from './services/OilService';
+import { MarketService } from './services/MarketService'; // NOUVEL IMPORT
 
 export class App {
   private containerId: string;
@@ -21,10 +21,12 @@ export class App {
   private cascadePanel!: CascadePanel;
   private climatePanel!: ClimatePanel;
   private macroPanel!: MacroPanel; 
-  private oilPanel!: OilPanel;
+  private marketPanel!: MarketPanel; // REMPLACE oilPanel
+  private marketService: MarketService; // NOUVEAU SERVICE LIVE
 
   constructor(containerId: string) {
     this.containerId = containerId;
+    this.marketService = new MarketService(); // Initialisation du flux continu
   }
 
   public async init(): Promise<void> {
@@ -56,21 +58,21 @@ export class App {
       this.cascadePanel = new CascadePanel();
       this.climatePanel = new ClimatePanel();
       this.macroPanel = new MacroPanel();
-      this.oilPanel = new OilPanel();
+      this.marketPanel = new MarketPanel(); // INITIALISATION DU TERMINAL
       
       // Ajout des éléments au DOM
       panelsContainer.appendChild(this.maritimePanel.element);
       panelsContainer.appendChild(this.cascadePanel.element);
       panelsContainer.appendChild(this.climatePanel.element);
       panelsContainer.appendChild(this.macroPanel.element);
-      panelsContainer.appendChild(this.oilPanel.element);
+      panelsContainer.appendChild(this.marketPanel.element); // AJOUT AU DOM
 
       // États de chargement visuels
       this.maritimePanel.showLoading("Analyse NASA EONET...");
       this.cascadePanel.showLoading("Flux USGS en cours...");
       this.climatePanel.showLoading("Calcul anomalies Open-Meteo...");
       this.macroPanel.showLoading("Indicateurs World Bank...");
-      this.oilPanel.showLoading("Marchés Énergie...");
+      this.marketPanel.showLoading("Connexion au flux de marché...");
     }
 
     // 3. Lancement du chargement des données
@@ -79,16 +81,16 @@ export class App {
 
   private async loadRealTimeData() {
     try {
+      // --- PARTIE 1 : DONNÉES PONCTUELLES (Se chargent une fois ou toutes les X minutes) ---
       const macroCountries = ['US', 'CN', 'BR', 'SA']; 
 
-      // Promise.allSettled protège l'application si un service plante
+      // On a retiré OilService d'ici car MarketService gère maintenant le pétrole
       const results = await Promise.allSettled([
         fetchLiveEarthquakes(),
         fetchLiveNaturalEvents(),
         fetchLiveFires(),
         ClimateService.fetchAnomalies(),
-        Promise.all(macroCountries.map(code => MacroService.fetchCountryScore(code))),
-        OilService.fetchPrices()
+        Promise.all(macroCountries.map(code => MacroService.fetchCountryScore(code)))
       ]);
 
       const earthquakes = results[0].status === 'fulfilled' ? results[0].value : [];
@@ -96,17 +98,23 @@ export class App {
       const wildfireData = results[2].status === 'fulfilled' ? results[2].value : { fires: [], stats: [] };
       const climate = results[3].status === 'fulfilled' ? results[3].value : [];
       const macroResults = results[4].status === 'fulfilled' ? results[4].value : [];
-      const oil = results[5].status === 'fulfilled' ? results[5].value : [];
 
       const validMacroScores = macroResults.filter((s): s is any => s !== null);
 
-      // Mises à jour
+      // Mises à jour des panneaux classiques
       if (this.map) this.map.updateLiveData(earthquakes, naturalEvents, wildfireData.fires);
       if (this.maritimePanel) this.maritimePanel.updateData(naturalEvents);
       if (this.cascadePanel) this.cascadePanel.updateData(earthquakes, wildfireData.fires);
       if (this.climatePanel) this.climatePanel.updateData(climate);
       if (this.macroPanel) this.macroPanel.updateData(validMacroScores);
-      if (this.oilPanel) this.oilPanel.updateData(oil);
+
+      // --- PARTIE 2 : FLUX CONTINU (Le terminal Bloomberg) ---
+      // On s'abonne aux mises à jour (le widget s'animera tout seul toutes les 2 secondes)
+      if (this.marketPanel) {
+        this.marketService.subscribeToLiveUpdates((data) => {
+          this.marketPanel.updateData(data);
+        });
+      }
 
     } catch (err) {
       console.error("Erreur critique dans le flux de données:", err);
