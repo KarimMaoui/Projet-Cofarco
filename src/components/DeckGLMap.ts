@@ -4,7 +4,6 @@ import { GeoJsonLayer, PathLayer, ScatterplotLayer } from '@deck.gl/layers';
 import maplibregl from 'maplibre-gl';
 import type { MapLayers } from '../types';
 
-// Nous importerons tes fichiers de configuration ici à la prochaine étape
 import { PIPELINES } from '../config/pipelines';
 import { PORTS } from '../config/ports';
 import { CONFLICT_ZONES, STRATEGIC_WATERWAYS } from '../config/geo';
@@ -30,6 +29,7 @@ export class DeckGLMap {
 
     this.setupDOM();
     this.initMapLibre();
+    this.createLayerMenu(); // Création du menu des couches
 
     this.maplibreMap?.on('load', () => {
       this.initDeck();
@@ -51,7 +51,7 @@ export class DeckGLMap {
     this.maplibreMap = new maplibregl.Map({
       container: 'deckgl-basemap',
       style: DARK_STYLE,
-      center: [20, 30], // Centré sur l'Europe/Moyen-Orient/Afrique
+      center: [20, 30],
       zoom: this.state.zoom,
       attributionControl: false,
     });
@@ -59,12 +59,10 @@ export class DeckGLMap {
 
   private initDeck(): void {
     if (!this.maplibreMap) return;
-
     this.deckOverlay = new MapboxOverlay({
       interleaved: true,
       layers: this.buildLayers(),
     });
-
     this.maplibreMap.addControl(this.deckOverlay as unknown as maplibregl.IControl);
   }
 
@@ -74,23 +72,71 @@ export class DeckGLMap {
     }
   }
 
+  // --- LE MENU DES COUCHES (Comme sur ton image) ---
+  private createLayerMenu(): void {
+    const menu = document.createElement('div');
+    menu.className = 'layer-menu';
+    
+    const layersConfig = [
+      { key: 'pipelines', label: 'OLÉODUCS ET GAZODUCS', icon: '🛢️' },
+      { key: 'ports', label: 'PORTS STRATÉGIQUES', icon: '🚢' },
+      { key: 'cables', label: 'CÂBLES SOUS-MARINS', icon: '🔌' },
+      { key: 'waterways', label: 'CHOKEPOINTS MARITIMES', icon: '⚓' },
+      { key: 'conflicts', label: 'ZONES DE CONFLIT', icon: '⚔️' }
+    ];
+
+    let html = `
+      <div class="layer-menu-header">
+        <span>COUCHES</span>
+        <span style="cursor:pointer;">▼</span>
+      </div>
+      <div class="layer-list">
+    `;
+
+    layersConfig.forEach(({ key, label, icon }) => {
+      const isChecked = this.state.layers[key as keyof MapLayers] ? 'checked' : '';
+      html += `
+        <label class="layer-item">
+          <input type="checkbox" data-layer="${key}" ${isChecked}>
+          <span class="custom-checkbox"></span>
+          <span class="layer-icon">${icon}</span>
+          <span class="layer-label">${label}</span>
+        </label>
+      `;
+    });
+
+    html += `</div>`;
+    menu.innerHTML = html;
+    this.container.appendChild(menu);
+
+    // Écouter les clics sur les cases à cocher
+    menu.querySelectorAll('input[type="checkbox"]').forEach(input => {
+      input.addEventListener('change', (e) => {
+        const target = e.target as HTMLInputElement;
+        const layerKey = target.getAttribute('data-layer') as keyof MapLayers;
+        if (layerKey) {
+          this.state.layers[layerKey] = target.checked;
+          this.render(); // Re-dessiner la carte
+        }
+      });
+    });
+  }
+
   private buildLayers() {
     const layers = [];
 
-    // 1. Pipelines (Pétrole & Gaz)
     if (this.state.layers.pipelines) {
       layers.push(new PathLayer({
         id: 'pipelines-layer',
         data: PIPELINES,
         getPath: (d) => d.points,
-        getColor: (d) => d.type === 'oil' ? [255, 107, 53, 200] : [0, 180, 216, 200], // Orange pour Oil, Bleu pour Gas
+        getColor: (d) => d.type === 'oil' ? [255, 107, 53, 200] : [0, 180, 216, 200],
         getWidth: 2,
         widthMinPixels: 2,
         pickable: true
       }));
     }
 
-    // 2. Ports (Commodities)
     if (this.state.layers.ports) {
       layers.push(new ScatterplotLayer({
         id: 'ports-layer',
@@ -103,7 +149,6 @@ export class DeckGLMap {
       }));
     }
 
-    // 3. Zones de conflit (Risque géopolitique)
     if (this.state.layers.conflicts) {
       const conflictGeoJSON = {
         type: 'FeatureCollection',
@@ -113,27 +158,25 @@ export class DeckGLMap {
           properties: { name: zone.name }
         }))
       };
-      
       layers.push(new GeoJsonLayer({
         id: 'conflicts-layer',
         data: conflictGeoJSON,
         filled: true,
         stroked: true,
-        getFillColor: [255, 0, 0, 60],
+        getFillColor: [255, 0, 0, 40],
         getLineColor: [255, 0, 0, 180],
         getLineWidth: 2,
         lineWidthMinPixels: 1,
       }));
     }
 
-    // 4. Strategic Waterways / Chokepoints (Ormuz, Suez, etc.)
     if (this.state.layers.waterways) {
       layers.push(new ScatterplotLayer({
         id: 'waterways-layer',
         data: STRATEGIC_WATERWAYS,
         getPosition: (d) => [d.lon, d.lat],
         getRadius: 15000,
-        getFillColor: [255, 255, 0, 180], // Jaune pour les chokepoints
+        getFillColor: [255, 255, 0, 180],
         radiusMinPixels: 6,
         pickable: true
       }));
