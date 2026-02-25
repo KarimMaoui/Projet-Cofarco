@@ -1,6 +1,6 @@
 // src/components/DeckGLMap.ts
 import { MapboxOverlay } from '@deck.gl/mapbox';
-import { GeoJsonLayer, PathLayer, ScatterplotLayer, TextLayer } from '@deck.gl/layers';
+import { GeoJsonLayer, PathLayer, ScatterplotLayer, IconLayer } from '@deck.gl/layers'; // On importe IconLayer !
 import maplibregl from 'maplibre-gl';
 import type { MapLayers } from '../types';
 
@@ -12,6 +12,30 @@ import { CRITICAL_MINERALS } from '../config/demo-data';
 import { PRODUCERS } from '../config/commodities'; 
 
 const DARK_STYLE = 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json';
+
+// --- LE SECRET EST ICI : ON TRANSFORME L'EMOJI EN IMAGE VRAIE COULEUR ---
+const emojiCache: Record<string, string> = {};
+
+function getEmojiDataURL(emoji: string): string {
+  if (emojiCache[emoji]) return emojiCache[emoji];
+  
+  const canvas = document.createElement('canvas');
+  canvas.width = 128; // Haute résolution
+  canvas.height = 128;
+  const ctx = canvas.getContext('2d');
+  
+  if (ctx) {
+    ctx.clearRect(0, 0, 128, 128);
+    // On force la police de couleur de ton ordinateur
+    ctx.font = '90px "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(emoji, 64, 70); 
+  }
+  
+  emojiCache[emoji] = canvas.toDataURL(); // Transforme le dessin en vraie image
+  return emojiCache[emoji];
+}
 
 export class DeckGLMap {
   private container: HTMLElement;
@@ -78,7 +102,7 @@ export class DeckGLMap {
         let html = '';
 
         try {
-          if (layerId === 'producers-text-layer') {
+          if (layerId === 'producers-icon-layer') {
             const com = PRODUCERS[this.selectedCommodity];
             html = `<div style="text-align:center;">
                       <div style="font-size: 24px; margin-bottom: 4px;">${com.emoji}</div>
@@ -237,24 +261,22 @@ export class DeckGLMap {
     if (this.state.layers.nasa && this.liveNaturalEvents.length > 0) layers.push(new ScatterplotLayer({ id: 'nasa-events-layer', data: this.liveNaturalEvents, getPosition: (d) => d.coordinates, getRadius: 18000, getFillColor: (d) => { const catString = Array.isArray(d.categories) ? d.categories.join(' ').toLowerCase() : ''; return catString.includes('volcanoes') || catString.includes('wildfires') ? [255, 100, 0, 200] : [0, 150, 255, 200]; }, radiusMinPixels: 5, pickable: true }));
     if (this.state.layers.fires && this.liveFires.length > 0) layers.push(new ScatterplotLayer({ id: 'fires-layer', data: this.liveFires, getPosition: (d) => [d.lon, d.lat], getRadius: (d) => Math.min((d.frp || 50) * 150, 30000), getFillColor: (d) => (d.frp && d.frp > 100) ? [255, 60, 0, 200] : [255, 140, 0, 150], radiusMinPixels: 3, pickable: true }));
 
-    // 3. LA COUCHE DES PRODUCTEURS : LES VRAIS EMOJIS EN COULEUR
+    // 3. LA COUCHE DES PRODUCTEURS EN VRAIES COULEURS
     if (this.selectedCommodity !== 'none') {
       const commodityData = PRODUCERS[this.selectedCommodity];
       
-      layers.push(new TextLayer({
-        id: 'producers-text-layer',
+      // On utilise IconLayer au lieu de TextLayer !
+      layers.push(new IconLayer({
+        id: 'producers-icon-layer',
         data: commodityData.countries,
         getPosition: (d: any) => [d.lon, d.lat],
-        getText: (d: any) => commodityData.emoji,
-        getSize: 40, // Bien gros pour être visible sans fond
-        characterSet: [commodityData.emoji],
-        getPixelOffset: [0, 0],
-        
-        // --- LES 3 COMMANDES MAGIQUES POUR FORCER LA COULEUR ---
-        getColor: [255, 255, 255, 255], // 1. Ne pas assombrir (Blanc = Multiplicateur neutre)
-        fontSettings: { sdf: false },   // 2. Désactiver le filtre noir & blanc (SDF) de DeckGL
-        fontFamily: 'system-ui, -apple-system, "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji", sans-serif', // 3. Polices couleurs natives
-        
+        getIcon: () => ({
+          url: getEmojiDataURL(commodityData.emoji), // L'image PNG générée avec ses vraies couleurs
+          width: 128,
+          height: 128,
+          anchorY: 64
+        }),
+        getSize: 40,
         pickable: true 
       }));
     }
