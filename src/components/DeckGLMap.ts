@@ -9,7 +9,7 @@ import { PIPELINES } from '../config/pipelines';
 import { PORTS } from '../config/ports';
 import { CONFLICT_ZONES, STRATEGIC_WATERWAYS } from '../config/geo';
 import { CRITICAL_MINERALS } from '../config/demo-data';
-import { PRODUCERS } from '../config/commodities'; // L'IMPORT PROPRE
+import { PRODUCERS } from '../config/commodities'; // On importe ta base de données !
 
 const DARK_STYLE = 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json';
 
@@ -78,7 +78,8 @@ export class DeckGLMap {
         let html = '';
 
         try {
-          if (layerId === 'producers-layer') {
+          // On écoute le cercle de fond (bg) pour afficher la bulle
+          if (layerId === 'producers-bg-layer') {
             const com = PRODUCERS[this.selectedCommodity];
             html = `<div style="text-align:center;">
                       <div style="font-size: 24px; margin-bottom: 4px;">${com.emoji}</div>
@@ -223,6 +224,7 @@ export class DeckGLMap {
   private buildLayers() {
     const layers = [];
 
+    // 1. Infrastructures & Géopolitique
     if (this.state.layers.pipelines) layers.push(new PathLayer({ id: 'pipelines-layer', data: PIPELINES, getPath: (d) => d.points, getColor: (d) => d.type === 'oil' ? [255, 107, 53, 200] : [0, 180, 216, 200], getWidth: 2, widthMinPixels: 2, pickable: true }));
     if (this.state.layers.ports) layers.push(new ScatterplotLayer({ id: 'ports-layer', data: PORTS, getPosition: (d) => [d.lon, d.lat], getRadius: 8000, getFillColor: (d) => d.type === 'oil' || d.type === 'lng' ? [255, 140, 0, 200] : [0, 200, 255, 180], radiusMinPixels: 4, pickable: true }));
     if (this.state.layers.waterways) layers.push(new ScatterplotLayer({ id: 'waterways-layer', data: STRATEGIC_WATERWAYS, getPosition: (d) => [d.lon, d.lat], getRadius: 15000, getFillColor: [255, 255, 0, 180], radiusMinPixels: 6, pickable: true }));
@@ -231,20 +233,37 @@ export class DeckGLMap {
       layers.push(new GeoJsonLayer({ id: 'conflicts-layer', data: conflictGeoJSON, filled: true, stroked: true, getFillColor: [255, 0, 0, 40], getLineColor: [255, 0, 0, 180], getLineWidth: 2, lineWidthMinPixels: 1, pickable: true }));
     }
 
-    // 2. LA COUCHE DES PRODUCTEURS IMPORTÉE DE COMMODITIES.TS
+    // 2. LA COUCHE DES PAYS PRODUCTEURS (Double couche : Cercle fluo + Emoji)
     if (this.selectedCommodity !== 'none') {
       const commodityData = PRODUCERS[this.selectedCommodity];
-      layers.push(new TextLayer({
-        id: 'producers-layer',
+      
+      // A. Le cercle lumineux (Assure qu'on voit toujours le pays)
+      layers.push(new ScatterplotLayer({
+        id: 'producers-bg-layer',
         data: commodityData.countries,
         getPosition: (d: any) => [d.lon, d.lat],
-        getText: () => commodityData.emoji,
-        getSize: 32, 
+        getRadius: 250000, // Rayon très large
+        getFillColor: [68, 255, 136, 120], // Vert transparent Cofarco
+        getLineColor: [68, 255, 136, 255],
+        lineWidthMinPixels: 2,
+        stroked: true,
+        pickable: true // C'est lui qui gère la bulle d'info !
+      }));
+
+      // B. L'Emoji par-dessus
+      layers.push(new TextLayer({
+        id: 'producers-text-layer',
+        data: commodityData.countries,
+        getPosition: (d: any) => [d.lon, d.lat],
+        getText: (d: any) => commodityData.emoji,
+        getSize: 30, 
+        characterSet: [commodityData.emoji], // LE SECRET EST LÀ : on force WebGL à charger l'emoji
         getPixelOffset: [0, 0], 
-        pickable: true
+        pickable: false // Pas besoin de cliquer sur le texte, le cercle en dessous gère ça
       }));
     }
 
+    // 3. Vraies données LIVE
     if (this.state.layers.earthquakes && this.liveEarthquakes.length > 0) layers.push(new ScatterplotLayer({ id: 'earthquakes-layer', data: this.liveEarthquakes, getPosition: (d) => d.coordinates, getRadius: (d) => Math.pow(2, d.mag || 1) * 1500, getFillColor: [255, 68, 68, 180], radiusMinPixels: 4, pickable: true }));
     if (this.state.layers.nasa && this.liveNaturalEvents.length > 0) layers.push(new ScatterplotLayer({ id: 'nasa-events-layer', data: this.liveNaturalEvents, getPosition: (d) => d.coordinates, getRadius: 18000, getFillColor: (d) => { const catString = Array.isArray(d.categories) ? d.categories.join(' ').toLowerCase() : ''; return catString.includes('volcanoes') || catString.includes('wildfires') ? [255, 100, 0, 200] : [0, 150, 255, 200]; }, radiusMinPixels: 5, pickable: true }));
     if (this.state.layers.fires && this.liveFires.length > 0) layers.push(new ScatterplotLayer({ id: 'fires-layer', data: this.liveFires, getPosition: (d) => [d.lon, d.lat], getRadius: (d) => Math.min((d.frp || 50) * 150, 30000), getFillColor: (d) => (d.frp && d.frp > 100) ? [255, 60, 0, 200] : [255, 140, 0, 150], radiusMinPixels: 3, pickable: true }));
