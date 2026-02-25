@@ -79,13 +79,19 @@ export class DeckGLMap {
 
         try {
           if (layerId === 'producers-bg-layer') {
+            // Tooltip pour les producteurs (le fond blanc gère le clic)
             const com = PRODUCERS[this.selectedCommodity];
-            html = `<div style="text-align:center;">
+            html = `<div style="text-align:center; color: #000;">
                       <div style="font-size: 24px; margin-bottom: 4px;">${com.emoji}</div>
                       <strong>Producteur Majeur de ${com.name}</strong><br/>
-                      <span style="color:#44ff88;">Pays : ${obj.name}</span>
+                      <span>Pays : ${obj.name}</span>
                     </div>`;
-          } else if (layerId === 'pipelines-layer') {
+            // Style spécial clair pour ce tooltip
+            return { html: `<div class="deckgl-tooltip" style="background: rgba(255,255,255,0.95); border: 1px solid #ccc; padding: 10px; border-radius: 6px; color: black; font-family: 'Inter', sans-serif; font-size: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.2);">${html}</div>` };
+          } 
+          
+          // --- Autres tooltips (Style sombre standard) ---
+          else if (layerId === 'pipelines-layer') {
             html = `<strong>${obj.name}</strong><br/>Type: ${obj.type.toUpperCase()}<br/>Capacité: ${obj.capacity || 'Inconnue'}`;
           } else if (layerId === 'ports-layer') {
             html = `<strong>${obj.name}</strong><br/>Pays: ${obj.country}<br/>${obj.note}`;
@@ -107,6 +113,7 @@ export class DeckGLMap {
           html = `<strong>Événement détecté</strong>`;
         }
 
+        // Style sombre par défaut
         return html ? { html: `<div class="deckgl-tooltip" style="background: rgba(10,10,10,0.9); border: 1px solid #44ff88; padding: 10px; border-radius: 6px; color: white; font-family: 'Inter', sans-serif; font-size: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.5);">${html}</div>` } : null;
       },
     });
@@ -241,26 +248,28 @@ export class DeckGLMap {
     if (this.selectedCommodity !== 'none') {
       const commodityData = PRODUCERS[this.selectedCommodity];
       
-      // A. Le "Badge" (Cercle opaque, plus petit, avec bordure fluo)
+      // A. Le "Badge Blanc" (Cercle BLANC OPAQUE, sans bordure verte)
       layers.push(new ScatterplotLayer({
         id: 'producers-bg-layer',
         data: commodityData.countries,
         getPosition: (d: any) => [d.lon, d.lat],
-        getRadius: 180000, // Environ la taille d'une région, s'adapte au zoom
-        getFillColor: [15, 15, 15, 255], // Fond noir très opaque pour un contraste parfait
-        getLineColor: [68, 255, 136, 255], // Bordure Vert Cofarco
+        getRadius: 180000,
+        // LE CHANGEMENT EST ICI : FOND BLANC PUR
+        getFillColor: [255, 255, 255, 255], 
+        // Bordure blanche pour être net
+        getLineColor: [255, 255, 255, 255], 
         lineWidthMinPixels: 2,
         stroked: true,
-        pickable: true // C'est lui qui gère la bulle d'info
+        pickable: true
       }));
 
-      // B. L'Emoji (Plus petit, parfaitement contrasté)
+      // B. L'Emoji
       layers.push(new TextLayer({
         id: 'producers-text-layer',
         data: commodityData.countries,
         getPosition: (d: any) => [d.lon, d.lat],
         getText: (d: any) => commodityData.emoji,
-        getSize: 22, // Taille réduite (plus élégant)
+        getSize: 22,
         characterSet: [commodityData.emoji],
         getPixelOffset: [0, 0], 
         pickable: false 
