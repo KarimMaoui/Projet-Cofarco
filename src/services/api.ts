@@ -32,36 +32,33 @@ export async function fetchLiveEarthquakes() {
  */
 export async function fetchLiveNaturalEvents() {
   try {
-    // On limite à 20 pour la performance
-    const response = await fetch('https://eonet.gsfc.nasa.gov/api/v3/events?status=open&limit=20');
+    const response = await fetch('https://eonet.gsfc.nasa.gov/api/v3/events?status=open&limit=50');
     
-    if (!response.ok) {
-        console.warn("⚠️ NASA EONET répond avec une erreur 503 ou 404.");
-        return [];
-    }
+    if (!response.ok) return [];
     
     const data = await response.json();
     
-    // PROTECTION CRITIQUE : Vérifie que data.events est bien un tableau
-    if (!data || !Array.isArray(data.events)) {
-      console.warn("⚠️ Format NASA EONET inconnu ou vide.");
-      return [];
-    }
+    if (!data || !Array.isArray(data.events)) return [];
 
     return data.events.map((event: any) => {
-      // Sécurité supplémentaire pour la géométrie
       const hasGeometry = event.geometry && event.geometry.length > 0;
       
+      // SÉCURITÉ ABSOLUE : On force la création d'un tableau (Array)
+      // pour que le fameux ".includes()" de DeckGL ne plante jamais.
+      const safeCategories = (event.categories && Array.isArray(event.categories)) 
+        ? event.categories.map((c: any) => c.title || '') 
+        : [];
+
       return {
         id: event.id,
         title: event.title,
-        categories: event.categories ? event.categories[0].title : 'Event',
+        categories: safeCategories, // Le format parfait pour la carte
         coordinates: hasGeometry ? event.geometry[0].coordinates : [0, 0],
         date: hasGeometry ? event.geometry[0].date : new Date().toISOString()
       };
     });
   } catch (error) {
     console.error("🔴 Erreur NASA EONET API:", error);
-    return []; // Empêche le crash de App.ts
+    return []; 
   }
 }
