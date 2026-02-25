@@ -121,17 +121,22 @@ export const INTEL_HOTSPOTS: Hotspot[] = [
   }
 ];
 
-export const MILITARY_BASES: MilitaryBase[] = [
-  { id: 'norfolk', name: 'Norfolk Naval', lat: 36.95, lon: -76.31, type: 'us-nato', description: 'World largest naval base. Atlantic Fleet HQ.' },
-  { id: 'san_diego', name: 'Naval San Diego', lat: 32.68, lon: -117.13, type: 'us-nato', description: 'Pacific Fleet. Carrier homeport.' },
-  { id: 'yokosuka', name: 'Yokosuka', lat: 35.28, lon: 139.67, type: 'us-nato', description: 'US 7th Fleet HQ. Carrier strike group homeport.' },
-  { id: 'rota', name: 'Naval Rota', lat: 36.62, lon: -6.35, type: 'us-nato', description: 'US/Spanish naval base. Aegis destroyers, Atlantic access.' },
-  { id: 'incirlik', name: 'Incirlik AB', lat: 37.0, lon: 35.43, type: 'us-nato', description: 'US/Turkish base. Nuclear weapons storage site.' },
-  { id: 'kaliningrad', name: 'Kaliningrad', lat: 54.71, lon: 20.51, type: 'russia', description: 'Russian exclave. Baltic Fleet, Iskander missiles.' },
-  { id: 'sevastopol', name: 'Sevastopol', lat: 44.6, lon: 33.5, type: 'russia', description: 'Black Sea Fleet HQ. Crimea (occupied).' },
-  { id: 'vladivostok', name: 'Vladivostok', lat: 43.12, lon: 131.9, type: 'russia', description: 'Pacific Fleet HQ. Nuclear submarines.' },
-  { id: 'murmansk', name: 'Murmansk', lat: 68.97, lon: 33.09, type: 'russia', description: 'Northern Fleet. Strategic nuclear submarines.' },
-  { id: 'chinese_pla_support_base', name: 'Chinese PLA Support Base', lat: 11.59150, lon: 43.06020, type: 'china', country: 'Djibouti', arm: 'Navy', status: 'active', description: 'Navy. Host: Djibouti.' },
-  { id: 'tartus', name: 'Russian naval facility in Tartus', lat: 34.91500, lon: 35.87400, type: 'russia', country: 'Syria', arm: 'Navy', status: 'active', description: 'Navy. Host: Syria.' },
-  { id: 'camp_lemonnier', name: 'Camp Lemonnier', lat: 11.54360, lon: 43.14860, type: 'us-nato', country: 'Djibouti', arm: 'Navy', status: 'active', description: 'Navy. Host: Djibouti.' }
-];
+// ==========================================
+  // SOUTHCOM (Amérique Centrale, du Sud & Caraïbes)
+  // ==========================================
+  { 
+    id: 'guantanamo', name: 'Naval Station Guantanamo Bay', lat: 19.90, lon: -75.10, type: 'us', country: 'Cuba', arm: 'Navy', status: 'active',
+    description: 'Plus ancienne base américaine outre-mer. Point d\'appui logistique dans les Caraïbes et centre de détention.' 
+  },
+  { 
+    id: 'soto_cano', name: 'Soto Cano Air Base', lat: 14.38, lon: -87.62, type: 'us', country: 'Honduras', arm: 'Joint', status: 'active',
+    description: 'Quartier général de la Joint Task Force Bravo. Essentielle pour les opérations en Amérique centrale.' 
+  },
+
+  // ==========================================
+  // OCÉANIE (Alliés stratégiques / Renseignement)
+  // ==========================================
+  { 
+    id: 'pine_gap', name: 'Joint Defence Facility Pine Gap', lat: -23.80, lon: 133.73, type: 'us-allied', country: 'Australia', arm: 'Space Force / CIA', status: 'active',
+    description: 'Station de suivi de satellites ultra-secrète gérée avec l\'Australie. Hub majeur du renseignement mondial (Five Eyes).' 
+  }
