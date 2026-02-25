@@ -1,5 +1,5 @@
 // src/config/geo.ts
-import type { ConflictZone, StrategicWaterway, Hotspot, MilitaryBase } from '../types';
+import type { ConflictZone, StrategicWaterway, Hotspot } from '../types';
 
 export const STRATEGIC_WATERWAYS: StrategicWaterway[] = [
   { id: 'taiwan_strait', name: 'TAIWAN STRAIT', lat: 24.0, lon: 119.5, description: 'Critical shipping lane, PLA activity' },
@@ -121,7 +121,108 @@ export const INTEL_HOTSPOTS: Hotspot[] = [
   }
 ];
 
-// ==========================================
+export interface MilitaryBase {
+  id: string;
+  name: string;
+  lat: number;
+  lon: number;
+  type: string;
+  country?: string;
+  arm?: string;
+  status?: string;
+  description: string;
+}
+
+export const US_MILITARY_BASES: MilitaryBase[] = [
+  // ==========================================
+  // CONUS (Continental United States) & HAWAII
+  // ==========================================
+  { 
+    id: 'norfolk', name: 'Naval Station Norfolk', lat: 36.95, lon: -76.31, type: 'us', country: 'USA', arm: 'Navy', status: 'active',
+    description: 'Plus grande base navale au monde. Quartier général de la flotte de l\'Atlantique.' 
+  },
+  { 
+    id: 'san_diego', name: 'Naval Base San Diego', lat: 32.68, lon: -117.13, type: 'us', country: 'USA', arm: 'Navy', status: 'active',
+    description: 'Principal port d\'attache de la flotte du Pacifique et de plusieurs porte-avions.' 
+  },
+  { 
+    id: 'fort_liberty', name: 'Fort Liberty (ex-Fort Bragg)', lat: 35.13, lon: -79.00, type: 'us', country: 'USA', arm: 'Army', status: 'active',
+    description: 'Plus grande base de l\'US Army par population. Siège des forces aéroportées et des opérations spéciales.' 
+  },
+  { 
+    id: 'camp_pendleton', name: 'Camp Pendleton', lat: 33.35, lon: -117.39, type: 'us', country: 'USA', arm: 'Marines', status: 'active',
+    description: 'Principale base de l\'US Marine Corps sur la côte ouest.' 
+  },
+  { 
+    id: 'jb_pearl_harbor_hickam', name: 'Joint Base Pearl Harbor-Hickam', lat: 21.34, lon: -157.94, type: 'us', country: 'USA', arm: 'Joint', status: 'active',
+    description: 'Base conjointe Air Force/Navy. QG de l\'US Indo-Pacific Command (INDOPACOM).' 
+  },
+
+  // ==========================================
+  // EUCOM (Europe) & AFRICOM (Africa)
+  // ==========================================
+  { 
+    id: 'ramstein', name: 'Ramstein Air Base', lat: 49.43, lon: 7.60, type: 'us-nato', country: 'Germany', arm: 'Air Force', status: 'active',
+    description: 'QG de l\'US Air Force en Europe. Plaque tournante logistique majeure.' 
+  },
+  { 
+    id: 'rota', name: 'Naval Station Rota', lat: 36.62, lon: -6.35, type: 'us-nato', country: 'Spain', arm: 'Navy', status: 'active',
+    description: 'Accès stratégique Atlantique/Méditerranée. Port d\'attache des destroyers Aegis.' 
+  },
+  { 
+    id: 'aviano', name: 'Aviano Air Base', lat: 46.03, lon: 12.59, type: 'us-nato', country: 'Italy', arm: 'Air Force', status: 'active',
+    description: 'Base clé de l\'OTAN abritant la 31st Fighter Wing et potentiellement des armes nucléaires tactiques.' 
+  },
+  { 
+    id: 'incirlik', name: 'Incirlik Air Base', lat: 37.00, lon: 35.43, type: 'us-nato', country: 'Turkey', arm: 'Air Force', status: 'active',
+    description: 'Base stratégique au carrefour de l\'Europe et du Moyen-Orient. Stockage d\'armes nucléaires.' 
+  },
+  { 
+    id: 'camp_lemonnier', name: 'Camp Lemonnier', lat: 11.54, lon: 43.14, type: 'us', country: 'Djibouti', arm: 'Navy', status: 'active',
+    description: 'Seule base permanente américaine en Afrique. Point d\'appui critique pour la Corne de l\'Afrique.' 
+  },
+
+  // ==========================================
+  // INDOPACOM (Asia-Pacific)
+  // ==========================================
+  { 
+    id: 'yokosuka', name: 'Fleet Activities Yokosuka', lat: 35.28, lon: 139.67, type: 'us-nato', country: 'Japan', arm: 'Navy', status: 'active',
+    description: 'QG de la 7ème flotte américaine. Seul port d\'attache d\'un porte-avions américain à l\'étranger.' 
+  },
+  { 
+    id: 'kadena', name: 'Kadena Air Base', lat: 26.35, lon: 127.76, type: 'us', country: 'Japan', arm: 'Air Force', status: 'active',
+    description: 'Le "hub" de la puissance aérienne américaine dans le Pacifique (Okinawa).' 
+  },
+  { 
+    id: 'camp_humphreys', name: 'Camp Humphreys', lat: 36.96, lon: 127.03, type: 'us', country: 'South Korea', arm: 'Army', status: 'active',
+    description: 'Plus grande base militaire américaine à l\'étranger. QG des forces américaines en Corée.' 
+  },
+  { 
+    id: 'andersen', name: 'Andersen Air Force Base', lat: 13.58, lon: 144.92, type: 'us', country: 'Guam', arm: 'Air Force', status: 'active',
+    description: 'Installation stratégique vitale permettant la projection de bombardiers lourds en Asie.' 
+  },
+
+  // ==========================================
+  // CENTCOM (Middle East) & Strategic Outposts
+  // ==========================================
+  { 
+    id: 'al_udeid', name: 'Al Udeid Air Base', lat: 25.11, lon: 51.31, type: 'us', country: 'Qatar', arm: 'Air Force', status: 'active',
+    description: 'Plus grande base américaine au Moyen-Orient. QG avancé de l\'US Central Command.' 
+  },
+  { 
+    id: 'nsa_bahrain', name: 'Naval Support Activity Bahrain', lat: 26.21, lon: 50.60, type: 'us', country: 'Bahrain', arm: 'Navy', status: 'active',
+    description: 'QG de la 5ème flotte américaine, surveillant le golfe Persique et la mer Rouge.' 
+  },
+  { 
+    id: 'diego_garcia', name: 'NSF Diego Garcia', lat: -7.31, lon: 72.41, type: 'us-nato', country: 'BIOT (UK)', arm: 'Joint', status: 'active',
+    description: 'Base insulaire ultra-stratégique dans l\'océan Indien. Soutien logistique et bombardiers.' 
+  },
+  { 
+    id: 'pituffik', name: 'Pituffik Space Base (ex-Thule)', lat: 76.53, lon: -68.70, type: 'us-nato', country: 'Greenland', arm: 'Space Force', status: 'active',
+    description: 'Base la plus septentrionale des USA. Radars d\'alerte précoce pour les missiles balistiques.' 
+  },
+
+  // ==========================================
   // SOUTHCOM (Amérique Centrale, du Sud & Caraïbes)
   // ==========================================
   { 
@@ -140,3 +241,4 @@ export const INTEL_HOTSPOTS: Hotspot[] = [
     id: 'pine_gap', name: 'Joint Defence Facility Pine Gap', lat: -23.80, lon: 133.73, type: 'us-allied', country: 'Australia', arm: 'Space Force / CIA', status: 'active',
     description: 'Station de suivi de satellites ultra-secrète gérée avec l\'Australie. Hub majeur du renseignement mondial (Five Eyes).' 
   }
+];
