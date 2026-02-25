@@ -79,18 +79,15 @@ export class DeckGLMap {
 
         try {
           if (layerId === 'producers-bg-layer') {
-            // Tooltip pour les producteurs (le fond blanc gère le clic)
             const com = PRODUCERS[this.selectedCommodity];
             html = `<div style="text-align:center; color: #000;">
                       <div style="font-size: 24px; margin-bottom: 4px;">${com.emoji}</div>
                       <strong>Producteur Majeur de ${com.name}</strong><br/>
                       <span>Pays : ${obj.name}</span>
                     </div>`;
-            // Style spécial clair pour ce tooltip
             return { html: `<div class="deckgl-tooltip" style="background: rgba(255,255,255,0.95); border: 1px solid #ccc; padding: 10px; border-radius: 6px; color: black; font-family: 'Inter', sans-serif; font-size: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.2);">${html}</div>` };
           } 
           
-          // --- Autres tooltips (Style sombre standard) ---
           else if (layerId === 'pipelines-layer') {
             html = `<strong>${obj.name}</strong><br/>Type: ${obj.type.toUpperCase()}<br/>Capacité: ${obj.capacity || 'Inconnue'}`;
           } else if (layerId === 'ports-layer') {
@@ -113,7 +110,6 @@ export class DeckGLMap {
           html = `<strong>Événement détecté</strong>`;
         }
 
-        // Style sombre par défaut
         return html ? { html: `<div class="deckgl-tooltip" style="background: rgba(10,10,10,0.9); border: 1px solid #44ff88; padding: 10px; border-radius: 6px; color: white; font-family: 'Inter', sans-serif; font-size: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.5);">${html}</div>` } : null;
       },
     });
@@ -244,26 +240,24 @@ export class DeckGLMap {
     if (this.state.layers.nasa && this.liveNaturalEvents.length > 0) layers.push(new ScatterplotLayer({ id: 'nasa-events-layer', data: this.liveNaturalEvents, getPosition: (d) => d.coordinates, getRadius: 18000, getFillColor: (d) => { const catString = Array.isArray(d.categories) ? d.categories.join(' ').toLowerCase() : ''; return catString.includes('volcanoes') || catString.includes('wildfires') ? [255, 100, 0, 200] : [0, 150, 255, 200]; }, radiusMinPixels: 5, pickable: true }));
     if (this.state.layers.fires && this.liveFires.length > 0) layers.push(new ScatterplotLayer({ id: 'fires-layer', data: this.liveFires, getPosition: (d) => [d.lon, d.lat], getRadius: (d) => Math.min((d.frp || 50) * 150, 30000), getFillColor: (d) => (d.frp && d.frp > 100) ? [255, 60, 0, 200] : [255, 140, 0, 150], radiusMinPixels: 3, pickable: true }));
 
-    // 3. LA COUCHE DES PRODUCTEURS (Tout à la fin = TOUT AU-DESSUS)
+    // 3. LA COUCHE DES PRODUCTEURS (Tout au-dessus)
     if (this.selectedCommodity !== 'none') {
       const commodityData = PRODUCERS[this.selectedCommodity];
       
-      // A. Le "Badge Blanc" (Cercle BLANC OPAQUE, sans bordure verte)
+      // A. Le "Badge Blanc" (Cercle opaque)
       layers.push(new ScatterplotLayer({
         id: 'producers-bg-layer',
         data: commodityData.countries,
         getPosition: (d: any) => [d.lon, d.lat],
         getRadius: 180000,
-        // LE CHANGEMENT EST ICI : FOND BLANC PUR
-        getFillColor: [255, 255, 255, 255], 
-        // Bordure blanche pour être net
-        getLineColor: [255, 255, 255, 255], 
+        getFillColor: [255, 255, 255, 255], // Blanc
+        getLineColor: [255, 255, 255, 255], // Blanc
         lineWidthMinPixels: 2,
         stroked: true,
         pickable: true
       }));
 
-      // B. L'Emoji
+      // B. L'Emoji (EN VRAIES COULEURS)
       layers.push(new TextLayer({
         id: 'producers-text-layer',
         data: commodityData.countries,
@@ -272,6 +266,11 @@ export class DeckGLMap {
         getSize: 22,
         characterSet: [commodityData.emoji],
         getPixelOffset: [0, 0], 
+        
+        // --- LA CORRECTION EST ICI ---
+        getColor: [255, 255, 255, 255], // On dit à DeckGL de ne pas assombrir l'image
+        fontFamily: '"Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif', // On force la police OS colorée
+        
         pickable: false 
       }));
     }
