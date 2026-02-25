@@ -78,14 +78,14 @@ export class DeckGLMap {
         let html = '';
 
         try {
-          if (layerId === 'producers-bg-layer') {
+          // CHANGEMENT ICI : On écoute le layer de texte directement
+          if (layerId === 'producers-text-layer') {
             const com = PRODUCERS[this.selectedCommodity];
-            html = `<div style="text-align:center; color: #000;">
+            html = `<div style="text-align:center;">
                       <div style="font-size: 24px; margin-bottom: 4px;">${com.emoji}</div>
                       <strong>Producteur Majeur de ${com.name}</strong><br/>
-                      <span>Pays : ${obj.name}</span>
+                      <span style="color:#44ff88;">Pays : ${obj.name}</span>
                     </div>`;
-            return { html: `<div class="deckgl-tooltip" style="background: rgba(255,255,255,0.95); border: 1px solid #ccc; padding: 10px; border-radius: 6px; color: black; font-family: 'Inter', sans-serif; font-size: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.2);">${html}</div>` };
           } 
           
           else if (layerId === 'pipelines-layer') {
@@ -110,6 +110,7 @@ export class DeckGLMap {
           html = `<strong>Événement détecté</strong>`;
         }
 
+        // Retour au style sombre unique pour tous les tooltips
         return html ? { html: `<div class="deckgl-tooltip" style="background: rgba(10,10,10,0.9); border: 1px solid #44ff88; padding: 10px; border-radius: 6px; color: white; font-family: 'Inter', sans-serif; font-size: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.5);">${html}</div>` } : null;
       },
     });
@@ -226,7 +227,7 @@ export class DeckGLMap {
   private buildLayers() {
     const layers = [];
 
-    // 1. Infrastructures & Géopolitique (En-dessous)
+    // 1. Infrastructures & Géopolitique
     if (this.state.layers.pipelines) layers.push(new PathLayer({ id: 'pipelines-layer', data: PIPELINES, getPath: (d) => d.points, getColor: (d) => d.type === 'oil' ? [255, 107, 53, 200] : [0, 180, 216, 200], getWidth: 2, widthMinPixels: 2, pickable: true }));
     if (this.state.layers.ports) layers.push(new ScatterplotLayer({ id: 'ports-layer', data: PORTS, getPosition: (d) => [d.lon, d.lat], getRadius: 8000, getFillColor: (d) => d.type === 'oil' || d.type === 'lng' ? [255, 140, 0, 200] : [0, 200, 255, 180], radiusMinPixels: 4, pickable: true }));
     if (this.state.layers.waterways) layers.push(new ScatterplotLayer({ id: 'waterways-layer', data: STRATEGIC_WATERWAYS, getPosition: (d) => [d.lon, d.lat], getRadius: 15000, getFillColor: [255, 255, 0, 180], radiusMinPixels: 6, pickable: true }));
@@ -235,43 +236,33 @@ export class DeckGLMap {
       layers.push(new GeoJsonLayer({ id: 'conflicts-layer', data: conflictGeoJSON, filled: true, stroked: true, getFillColor: [255, 0, 0, 40], getLineColor: [255, 0, 0, 180], getLineWidth: 2, lineWidthMinPixels: 1, pickable: true }));
     }
 
-    // 2. Vraies données LIVE (Au milieu)
+    // 2. Vraies données LIVE
     if (this.state.layers.earthquakes && this.liveEarthquakes.length > 0) layers.push(new ScatterplotLayer({ id: 'earthquakes-layer', data: this.liveEarthquakes, getPosition: (d) => d.coordinates, getRadius: (d) => Math.pow(2, d.mag || 1) * 1500, getFillColor: [255, 68, 68, 180], radiusMinPixels: 4, pickable: true }));
     if (this.state.layers.nasa && this.liveNaturalEvents.length > 0) layers.push(new ScatterplotLayer({ id: 'nasa-events-layer', data: this.liveNaturalEvents, getPosition: (d) => d.coordinates, getRadius: 18000, getFillColor: (d) => { const catString = Array.isArray(d.categories) ? d.categories.join(' ').toLowerCase() : ''; return catString.includes('volcanoes') || catString.includes('wildfires') ? [255, 100, 0, 200] : [0, 150, 255, 200]; }, radiusMinPixels: 5, pickable: true }));
     if (this.state.layers.fires && this.liveFires.length > 0) layers.push(new ScatterplotLayer({ id: 'fires-layer', data: this.liveFires, getPosition: (d) => [d.lon, d.lat], getRadius: (d) => Math.min((d.frp || 50) * 150, 30000), getFillColor: (d) => (d.frp && d.frp > 100) ? [255, 60, 0, 200] : [255, 140, 0, 150], radiusMinPixels: 3, pickable: true }));
 
-    // 3. LA COUCHE DES PRODUCTEURS (Tout au-dessus)
+    // 3. LA COUCHE DES PRODUCTEURS (Juste l'emoji, en grand)
     if (this.selectedCommodity !== 'none') {
       const commodityData = PRODUCERS[this.selectedCommodity];
       
-      // A. Le "Badge Blanc" (Cercle opaque)
-      layers.push(new ScatterplotLayer({
-        id: 'producers-bg-layer',
-        data: commodityData.countries,
-        getPosition: (d: any) => [d.lon, d.lat],
-        getRadius: 180000,
-        getFillColor: [255, 255, 255, 255], // Blanc
-        getLineColor: [255, 255, 255, 255], // Blanc
-        lineWidthMinPixels: 2,
-        stroked: true,
-        pickable: true
-      }));
-
-      // B. L'Emoji (EN VRAIES COULEURS)
+      // Suppression du ScatterplotLayer (le rond blanc)
+      
+      // L'Emoji seul
       layers.push(new TextLayer({
         id: 'producers-text-layer',
         data: commodityData.countries,
         getPosition: (d: any) => [d.lon, d.lat],
         getText: (d: any) => commodityData.emoji,
-        getSize: 22,
+        getSize: 35, // Taille augmentée pour être bien visible
         characterSet: [commodityData.emoji],
         getPixelOffset: [0, 0], 
         
-        // --- LA CORRECTION EST ICI ---
-        getColor: [255, 255, 255, 255], // On dit à DeckGL de ne pas assombrir l'image
-        fontFamily: '"Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif', // On force la police OS colorée
+        // On tente de forcer la couleur native, mais attention, 
+        // sur certains navigateurs ça peut rester une silhouette monochrome.
+        // C'est une limitation technique de WebGL actuellement.
+        fontFamily: '"Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif',
         
-        pickable: false 
+        pickable: true // C'est maintenant l'emoji qui déclenche le tooltip
       }));
     }
 
