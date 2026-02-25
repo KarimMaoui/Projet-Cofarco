@@ -1,85 +1,47 @@
 // src/services/wildfires.ts
 
-export interface MapFire {
-  lat: number; lon: number; brightness: number; frp: number;
-  confidence: string; region: string; acq_date: string;
+export interface FireEvent {
+  lat: number;
+  lon: number;
+  frp: number; // Puissance radiative du feu (intensité)
+  confidence: string;
 }
 
-export interface FireRegionStats {
-  region: string; fireCount: number; totalFrp: number; highIntensityCount: number;
-}
-
-export async function fetchLiveFires(): Promise<{ fires: MapFire[], stats: FireRegionStats[] }> {
-  // Fichier global de la NASA
-  const targetUrl = "https://firms.modaps.eosdis.nasa.gov/data/active_fire/suomi-npp-viirs-c2/csv/SUOMI_VIIRS_C2_Global_24h.csv";
-  
-  // Utilisation du proxy Codetabs (plus robuste pour les gros fichiers textes)
-  const proxyUrl = `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(targetUrl)}`;
-
+export async function fetchLiveFires(): Promise<FireEvent[]> {
   try {
+    // Le vrai fichier de données brutes de la NASA (Global 24h)
+    const targetUrl = 'https://firms.modaps.eosdis.nasa.gov/data/active_fire/suomi-npp-viirs-c2/csv/SUOMI_VIIRS_C2_Global_24h.csv';
+    
+    // Notre proxy robuste qui ne bloque pas
+    const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(targetUrl)}`;
+    
     const response = await fetch(proxyUrl);
-    if (!response.ok) throw new Error('Le proxy Codetabs est inaccessible');
+    if (!response.ok) throw new Error("Serveur NASA FIRMS injoignable");
     
-    // Codetabs renvoie le texte pur directement
-    const csvData = await response.text();
+    // La NASA renvoie un fichier texte CSV, pas du JSON
+    const text = await response.text();
+    const lines = text.split('\n').slice(1); // On retire la première ligne (les en-têtes)
     
-    // Sécurité : si le proxy plante, il renvoie parfois du HTML. On ignore dans ce cas.
-    if (!csvData || csvData.length < 100 || csvData.includes('<html>')) {
-        console.warn("NASA FIRMS: Fichier vide ou proxy bloqué.");
-        return { fires: [], stats: [] };
-    }
-
-    const rows = csvData.split('\n').slice(1);
-    const fires: MapFire[] = [];
-    const regionGroups: Record<string, MapFire[]> = {};
-
-    for (const row of rows) {
-      const cols = row.split(',');
-      if (cols.length < 13) continue;
-
-      const lat = parseFloat(cols[0]);
-      const lon = parseFloat(cols[1]);
-      
-      // Découpage géographique MONDIAL (puisqu'on charge le fichier Global)
-      let region = "Autres";
-      if (lon < -30) {
-        region = "Amériques";
-      } else if (lat > 35 && lon > -30 && lon < 60) {
-        region = "Europe/Méditerranée";
-      } else if (lat <= 35 && lat > -35 && lon > -30 && lon < 60) {
-        region = "Afrique/Moyen-Orient";
-      } else if (lon >= 60) {
-        region = "Asie/Pacifique";
-      }
-
-      const fire: MapFire = {
-        lat, lon,
-        brightness: parseFloat(cols[2]),
-        confidence: cols[9],
-        frp: parseFloat(cols[12]),
-        region,
-        acq_date: cols[5],
-      };
-
-      // Seuil de puissance > 2 MW pour garder les feux significatifs
-      if (fire.frp > 2 && (fire.confidence === 'h' || fire.confidence === 'n')) {
-        fires.push(fire);
-        (regionGroups[region] ??= []).push(fire);
+    const fires: FireEvent[] = [];
+    
+    // On limite à 1500 incendies pour ne pas faire exploser la carte 3D de ton navigateur
+    for (let i = 0; i < Math.min(lines.length, 1500); i++) {
+      const cols = lines[i].split(',');
+      if (cols.length >= 13) {
+        fires.push({
+          lat: parseFloat(cols[0]),
+          lon: parseFloat(cols[1]),
+          frp: parseFloat(cols[12]),
+          confidence: cols[8]
+        });
       }
     }
+    
+    console.log(`🔥 [NASA FIRMS] ${fires.length} foyers actifs récupérés avec succès !`);
+    return fires;
 
-    const stats = Object.entries(regionGroups).map(([name, fArr]) => ({
-      region: name,
-      fireCount: fArr.length,
-      totalFrp: fArr.reduce((sum, f) => sum + f.frp, 0),
-      highIntensityCount: fArr.filter(f => f.confidence === 'h').length
-    })).sort((a, b) => b.fireCount - a.fireCount);
-
-    console.log(`[NASA FIRMS] ${fires.length} foyers actifs récupérés via Codetabs.`);
-
-    return { fires, stats };
   } catch (error) {
-    console.error("Échec NASA FIRMS:", error);
-    return { fires: [], stats: [] };
+    console.error("🔴 Erreur critique NASA FIRMS :", error);
+    return []; // On retourne un tableau vide pour ne pas faire crasher la carte
   }
 }
