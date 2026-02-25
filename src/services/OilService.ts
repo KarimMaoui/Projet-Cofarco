@@ -22,13 +22,22 @@ export class OilService {
         
         const data = await response.json();
         const meta = data.chart.result[0].meta;
-        
-        return {
-          name: sym === 'CL=F' ? 'WTI Crude' : 'Brent Crude',
-          symbol: sym,
-          price: meta.regularMarketPrice,
-          change: ((meta.regularMarketPrice - meta.previousClose) / meta.previousClose) * 100
-        };
+const currentPrice = meta.regularMarketPrice;
+
+// SÉCURITÉ : Si previousClose est manquant, on cherche une alternative dans l'API
+const referencePrice = meta.previousClose || meta.chartPreviousClose || currentPrice;
+
+// On calcule le changement. Si les deux sont identiques, ça fera 0% au lieu de NaN
+const changePct = referencePrice !== 0 
+  ? ((currentPrice - referencePrice) / referencePrice) * 100 
+  : 0;
+
+return {
+  name: sym === 'CL=F' ? 'WTI Crude' : 'Brent Crude',
+  symbol: sym,
+  price: currentPrice,
+  change: changePct
+};
       }));
       return results;
     } catch (e) {
