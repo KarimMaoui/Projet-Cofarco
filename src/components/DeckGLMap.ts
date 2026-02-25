@@ -7,7 +7,7 @@ import type { MapLayers } from '../types';
 // Imports des données
 import { PIPELINES } from '../config/pipelines';
 import { PORTS } from '../config/ports';
-// CORRECTION ICI : On importe aussi INTEL_HOTSPOTS et MILITARY_BASES
+// CORRECTION ICI : On importe aussi INTEL_HOTSPOTS et US_MILITARY_BASES
 import { CONFLICT_ZONES, STRATEGIC_WATERWAYS, INTEL_HOTSPOTS, US_MILITARY_BASES } from '../config/geo';
 import { CRITICAL_MINERALS } from '../config/demo-data';
 import { PRODUCERS } from '../config/commodities'; 
@@ -324,7 +324,7 @@ export class DeckGLMap {
     if (this.state.layers.bases) {
       layers.push(new ScatterplotLayer({
         id: 'military-bases-layer',
-        data: MILITARY_BASES,
+        data: US_MILITARY_BASES,
         getPosition: (d: any) => [d.lon, d.lat],
         getRadius: 10000,
         // Bleu foncé pour US/NATO, Rouge sombre pour Russie/Chine
@@ -335,7 +335,7 @@ export class DeckGLMap {
       // On rajoute un petit "B" blanc ou ancre par dessus pour qu'on comprenne que c'est une base
       layers.push(new TextLayer({
         id: 'military-bases-text',
-        data: MILITARY_BASES,
+        data: US_MILITARY_BASES,
         getPosition: (d: any) => [d.lon, d.lat],
         getText: () => '⚓',
         getSize: 16,
