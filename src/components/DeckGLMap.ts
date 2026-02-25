@@ -8,8 +8,6 @@ import type { MapLayers } from '../types';
 import { PIPELINES } from '../config/pipelines';
 import { PORTS } from '../config/ports';
 import { CONFLICT_ZONES, STRATEGIC_WATERWAYS } from '../config/geo';
-
-// L'UNIQUE donnée restante dans demo-data.ts
 import { CRITICAL_MINERALS } from '../config/demo-data';
 
 const DARK_STYLE = 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json';
@@ -20,7 +18,7 @@ export class DeckGLMap {
   private maplibreMap: maplibregl.Map | null = null;
   private state: { zoom: number; layers: any };
   
-  // Variables pour stocker les VRAIES données Live (injectées par App.ts)
+  // Variables pour stocker les VRAIES données Live
   private liveEarthquakes: any[] = [];
   private liveNaturalEvents: any[] = [];
   private liveFires: any[] = [];
@@ -39,7 +37,6 @@ export class DeckGLMap {
     });
   }
 
-  // --- MISE A JOUR DES DONNÉES LIVE ---
   public updateLiveData(earthquakes: any[], naturalEvents: any[], fires: any[]) {
     this.liveEarthquakes = earthquakes;
     this.liveNaturalEvents = naturalEvents;
@@ -72,32 +69,40 @@ export class DeckGLMap {
     this.deckOverlay = new MapboxOverlay({
       interleaved: true,
       layers: this.buildLayers(),
-      // --- GESTION DES TOOLTIPS ---
+      // --- GESTION DES TOOLTIPS SÉCURISÉE ---
       getTooltip: (info: any) => {
         if (!info.object) return null;
         const obj = info.object;
         const layerId = info.layer.id;
         let html = '';
 
-        if (layerId === 'pipelines-layer') {
-          html = `<strong>${obj.name}</strong><br/>Type: ${obj.type.toUpperCase()}<br/>Capacité: ${obj.capacity || 'Inconnue'}`;
-        } else if (layerId === 'ports-layer') {
-          html = `<strong>${obj.name}</strong><br/>Pays: ${obj.country}<br/>${obj.note}`;
-        } else if (layerId === 'conflicts-layer') {
-          html = `<strong>${obj.properties.name}</strong><br/>Zone sous tension affectant le fret.`;
-        } else if (layerId === 'waterways-layer') {
-          html = `<strong>${obj.name}</strong><br/>${obj.description}`;
-        } else if (layerId === 'minerals-layer') {
-          html = `<strong>${obj.name} (${obj.mineral})</strong><br/>Statut: ${obj.status.toUpperCase()}<br/>${obj.significance}`;
-        } else if (layerId === 'fires-layer') {
-          html = `<strong>🔥 Incendie Détecté (NASA)</strong><br/>Puissance (FRP): ${obj.frp} MW<br/>Confiance: ${obj.confidence === 'h' ? 'Haute' : 'Nominale'}`;
-        } else if (layerId === 'nasa-events-layer') {
-          html = `<strong>⚠️ Alerte NASA EONET</strong><br/>Type: ${obj.category.toUpperCase()}<br/>${obj.title}`;
-        } else if (layerId === 'earthquakes-layer') {
-          html = `<strong>🔴 Séisme (USGS)</strong><br/>Magnitude: ${obj.magnitude.toFixed(1)}<br/>Lieu: ${obj.place}<br/>Heure: ${obj.time.toLocaleTimeString()}`;
+        try {
+          if (layerId === 'pipelines-layer') {
+            html = `<strong>${obj.name}</strong><br/>Type: ${obj.type.toUpperCase()}<br/>Capacité: ${obj.capacity || 'Inconnue'}`;
+          } else if (layerId === 'ports-layer') {
+            html = `<strong>${obj.name}</strong><br/>Pays: ${obj.country}<br/>${obj.note}`;
+          } else if (layerId === 'conflicts-layer') {
+            html = `<strong>${obj.properties.name}</strong><br/>Zone sous tension affectant le fret.`;
+          } else if (layerId === 'waterways-layer') {
+            html = `<strong>${obj.name}</strong><br/>${obj.description}`;
+          } else if (layerId === 'minerals-layer') {
+            html = `<strong>${obj.name} (${obj.mineral})</strong><br/>Statut: ${obj.status.toUpperCase()}<br/>${obj.significance}`;
+          } else if (layerId === 'fires-layer') {
+            const frp = obj.frp ? Number(obj.frp).toFixed(1) : 'Inconnue';
+            html = `<strong>🔥 Incendie Détecté (NASA)</strong><br/>Puissance (FRP): ${frp} MW`;
+          } else if (layerId === 'nasa-events-layer') {
+            const cat = Array.isArray(obj.categories) ? obj.categories.join(', ') : (obj.categories || 'Inconnue');
+            html = `<strong>⚠️ Alerte NASA EONET</strong><br/>Type: ${cat.toUpperCase()}<br/>${obj.title}`;
+          } else if (layerId === 'earthquakes-layer') {
+            const mag = obj.mag ? Number(obj.mag).toFixed(1) : 'Inconnue';
+            const time = obj.time ? new Date(obj.time).toLocaleTimeString() : 'Heure inconnue';
+            html = `<strong>🔴 Séisme (USGS)</strong><br/>Magnitude: ${mag}<br/>Lieu: ${obj.place || 'Inconnu'}<br/>Heure: ${time}`;
+          }
+        } catch (e) {
+          html = `<strong>Événement détecté</strong>`; // Sécurité si une donnée est corrompue
         }
 
-        return html ? { html: `<div class="deckgl-tooltip">${html}</div>` } : null;
+        return html ? { html: `<div class="deckgl-tooltip" style="background: rgba(0,0,0,0.8); border: 1px solid #333; padding: 8px; border-radius: 4px; color: white; font-family: sans-serif; font-size: 12px;">${html}</div>` } : null;
       },
     });
     this.maplibreMap.addControl(this.deckOverlay as unknown as maplibregl.IControl);
@@ -109,7 +114,6 @@ export class DeckGLMap {
     }
   }
 
-  // --- LE MENU FLOTTANT DES COUCHES ---
   private createLayerMenu(): void {
     const menu = document.createElement('div');
     menu.className = 'layer-menu';
@@ -125,13 +129,7 @@ export class DeckGLMap {
       { key: 'fires', label: 'INCENDIES LIVE (NASA)', icon: '🔥' }
     ];
 
-    let html = `
-      <div class="layer-menu-header">
-        <span>COUCHES</span>
-        <span>▼</span>
-      </div>
-      <div class="layer-list">
-    `;
+    let html = `<div class="layer-menu-header"><span>COUCHES</span><span>▼</span></div><div class="layer-list">`;
 
     layersConfig.forEach(({ key, label, icon }) => {
       const isChecked = this.state.layers[key] ? 'checked' : '';
@@ -155,13 +153,12 @@ export class DeckGLMap {
         const layerKey = target.getAttribute('data-layer');
         if (layerKey) {
           this.state.layers[layerKey] = target.checked;
-          this.render(); // Déclenche la mise à jour des couches sur la carte
+          this.render(); 
         }
       });
     });
   }
 
-  // --- LA LÉGENDE FIXÉE EN BAS ---
   private createLegend(): void {
     const legend = document.createElement('div');
     legend.style.cssText = `
@@ -180,11 +177,10 @@ export class DeckGLMap {
     this.container.appendChild(legend);
   }
 
-  // --- CONSTRUCTION DES CALQUES DECK.GL ---
   private buildLayers() {
     const layers = [];
 
-    // 1. Infrastructures & Géopolitique (Données statiques)
+    // 1. Infrastructures & Géopolitique
     if (this.state.layers.pipelines) {
       layers.push(new PathLayer({ id: 'pipelines-layer', data: PIPELINES, getPath: (d) => d.points, getColor: (d) => d.type === 'oil' ? [255, 107, 53, 200] : [0, 180, 216, 200], getWidth: 2, widthMinPixels: 2, pickable: true }));
     }
@@ -198,20 +194,18 @@ export class DeckGLMap {
       const conflictGeoJSON = { type: 'FeatureCollection', features: CONFLICT_ZONES.map(zone => ({ type: 'Feature', geometry: { type: 'Polygon', coordinates: [zone.coords] }, properties: { name: zone.name } })) };
       layers.push(new GeoJsonLayer({ id: 'conflicts-layer', data: conflictGeoJSON, filled: true, stroked: true, getFillColor: [255, 0, 0, 40], getLineColor: [255, 0, 0, 180], getLineWidth: 2, lineWidthMinPixels: 1, pickable: true }));
     }
-
-    // 2. Éléments statiques additionnels
     if (this.state.layers.minerals) {
       layers.push(new ScatterplotLayer({ id: 'minerals-layer', data: CRITICAL_MINERALS, getPosition: (d) => [d.lon, d.lat], getRadius: 10000, getFillColor: [0, 200, 255, 200], radiusMinPixels: 5, pickable: true }));
     }
 
-    // 3. Vraies données LIVE (Récupérées par l'API)
+    // 3. Vraies données LIVE
     if (this.state.layers.earthquakes && this.liveEarthquakes.length > 0) {
       layers.push(new ScatterplotLayer({
         id: 'earthquakes-layer',
         data: this.liveEarthquakes,
-        getPosition: (d) => [d.lon, d.lat],
-        getRadius: (d) => Math.pow(2, d.magnitude) * 1500, // Taille proportionnelle à la magnitude
-        getFillColor: [255, 68, 68, 180], // Rouge translucide
+        getPosition: (d) => d.coordinates, // L'USGS renvoie déjà [lon, lat] dans coordinates
+        getRadius: (d) => Math.pow(2, d.mag || 1) * 1500,
+        getFillColor: [255, 68, 68, 180],
         radiusMinPixels: 4,
         pickable: true
       }));
@@ -221,10 +215,13 @@ export class DeckGLMap {
       layers.push(new ScatterplotLayer({
         id: 'nasa-events-layer',
         data: this.liveNaturalEvents,
-        getPosition: (d) => [d.lon, d.lat],
+        getPosition: (d) => d.coordinates, // Récupéré de api.ts
         getRadius: 18000,
-        // Rouge pour feux/volcans, Bleu pour tempêtes
-        getFillColor: (d) => d.category.includes('wildfires') || d.category.includes('volcanoes') ? [255, 100, 0, 200] : [0, 150, 255, 200],
+        getFillColor: (d) => {
+          // Correction du crash .includes()
+          const catString = Array.isArray(d.categories) ? d.categories.join(' ').toLowerCase() : '';
+          return catString.includes('volcanoes') || catString.includes('wildfires') ? [255, 100, 0, 200] : [0, 150, 255, 200];
+        },
         radiusMinPixels: 5,
         pickable: true
       }));
@@ -235,10 +232,8 @@ export class DeckGLMap {
         id: 'fires-layer',
         data: this.liveFires,
         getPosition: (d) => [d.lon, d.lat],
-        // Le FRP (Puissance) détermine la taille du point
-        getRadius: (d) => Math.min(d.frp * 150, 30000), 
-        // Orange clair pour feu normal, Rouge vif pour feu intense
-        getFillColor: (d) => d.brightness > 330 ? [255, 60, 0, 200] : [255, 140, 0, 150],
+        getRadius: (d) => Math.min((d.frp || 50) * 150, 30000), 
+        getFillColor: (d) => (d.frp && d.frp > 100) ? [255, 60, 0, 200] : [255, 140, 0, 150],
         radiusMinPixels: 3,
         pickable: true
       }));
