@@ -1,6 +1,6 @@
 // src/components/DeckGLMap.ts
 import { MapboxOverlay } from '@deck.gl/mapbox';
-import { GeoJsonLayer, PathLayer, ScatterplotLayer, IconLayer } from '@deck.gl/layers'; // On importe IconLayer !
+import { GeoJsonLayer, PathLayer, ScatterplotLayer, IconLayer } from '@deck.gl/layers';
 import maplibregl from 'maplibre-gl';
 import type { MapLayers } from '../types';
 
@@ -10,30 +10,30 @@ import { PORTS } from '../config/ports';
 import { CONFLICT_ZONES, STRATEGIC_WATERWAYS } from '../config/geo';
 import { CRITICAL_MINERALS } from '../config/demo-data';
 import { PRODUCERS } from '../config/commodities'; 
+import { fetchSanctionedCountries } from '../config/sanctions'; // NOUVEL IMPORT
 
 const DARK_STYLE = 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json';
 
-// --- LE SECRET EST ICI : ON TRANSFORME L'EMOJI EN IMAGE VRAIE COULEUR ---
+// --- LE SECRET DES EMOJIS ---
 const emojiCache: Record<string, string> = {};
 
 function getEmojiDataURL(emoji: string): string {
   if (emojiCache[emoji]) return emojiCache[emoji];
   
   const canvas = document.createElement('canvas');
-  canvas.width = 128; // Haute résolution
+  canvas.width = 128;
   canvas.height = 128;
   const ctx = canvas.getContext('2d');
   
   if (ctx) {
     ctx.clearRect(0, 0, 128, 128);
-    // On force la police de couleur de ton ordinateur
     ctx.font = '90px "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillText(emoji, 64, 70); 
   }
   
-  emojiCache[emoji] = canvas.toDataURL(); // Transforme le dessin en vraie image
+  emojiCache[emoji] = canvas.toDataURL();
   return emojiCache[emoji];
 }
 
@@ -47,6 +47,8 @@ export class DeckGLMap {
   private liveNaturalEvents: any[] = [];
   private liveFires: any[] = [];
   
+  // NOUVELLE VARIABLE POUR LES FRONTIÈRES
+  private sanctionsGeoJSON: any = null;
   private selectedCommodity: string = 'none';
 
   constructor(container: HTMLElement, initialState: any) {
@@ -57,6 +59,14 @@ export class DeckGLMap {
     this.initMapLibre();
     this.createLayerMenu();
     this.createLegend();
+
+    // ON TÉLÉCHARGE LES FRONTIÈRES AU DÉMARRAGE
+    fetchSanctionedCountries().then(data => {
+      if (data) {
+        this.sanctionsGeoJSON = data;
+        this.render(); // On redessine la carte une fois les frontières reçues
+      }
+    });
 
     this.maplibreMap?.on('load', () => {
       this.initDeck();
@@ -109,7 +119,14 @@ export class DeckGLMap {
                       <strong>Producteur Majeur de ${com.name}</strong><br/>
                       <span style="color:#44ff88;">Pays : ${obj.name}</span>
                     </div>`;
-          } else if (layerId === 'pipelines-layer') {
+          } 
+          // INFO BULLE POUR LES SANCTIONS
+          else if (layerId === 'sanctions-layer') {
+            html = `<strong style="color:#ff4444;">⛔ ZONE SOUS SANCTIONS (US)</strong><br/>
+                    Pays : ${obj.properties.ADMIN}<br/>
+                    <span style="color:#888;">Risque Compliance : Extrême</span>`;
+          }
+          else if (layerId === 'pipelines-layer') {
             html = `<strong>${obj.name}</strong><br/>Type: ${obj.type.toUpperCase()}<br/>Capacité: ${obj.capacity || 'Inconnue'}`;
           } else if (layerId === 'ports-layer') {
             html = `<strong>${obj.name}</strong><br/>Pays: ${obj.country}<br/>${obj.note}`;
@@ -148,6 +165,7 @@ export class DeckGLMap {
     menu.className = 'layer-menu';
     
     const layersConfig = [
+      { key: 'sanctions', label: 'PAYS SOUS SANCTIONS', icon: '⛔' }, // AJOUT DU BOUTON ICI
       { key: 'pipelines', label: 'OLÉODUCS ET GAZODUCS', icon: '🛢️' },
       { key: 'ports', label: 'PORTS STRATÉGIQUES', icon: '🚢' },
       { key: 'waterways', label: 'CHOKEPOINTS MARITIMES', icon: '⚓' },
@@ -247,6 +265,21 @@ export class DeckGLMap {
   private buildLayers() {
     const layers = [];
 
+    // 0. COUCHE PAYS SOUS SANCTIONS (Tout en dessous, pour ne pas cacher les ports/pipelines)
+    if (this.state.layers.sanctions && this.sanctionsGeoJSON) {
+      layers.push(new GeoJsonLayer({
+        id: 'sanctions-layer',
+        data: this.sanctionsGeoJSON,
+        filled: true,
+        stroked: true,
+        getFillColor: [255, 0, 0, 40], // Rouge très transparent
+        getLineColor: [255, 68, 68, 200], // Bordure rouge vif
+        getLineWidth: 2,
+        lineWidthMinPixels: 1,
+        pickable: true
+      }));
+    }
+
     // 1. Infrastructures & Géopolitique
     if (this.state.layers.pipelines) layers.push(new PathLayer({ id: 'pipelines-layer', data: PIPELINES, getPath: (d) => d.points, getColor: (d) => d.type === 'oil' ? [255, 107, 53, 200] : [0, 180, 216, 200], getWidth: 2, widthMinPixels: 2, pickable: true }));
     if (this.state.layers.ports) layers.push(new ScatterplotLayer({ id: 'ports-layer', data: PORTS, getPosition: (d) => [d.lon, d.lat], getRadius: 8000, getFillColor: (d) => d.type === 'oil' || d.type === 'lng' ? [255, 140, 0, 200] : [0, 200, 255, 180], radiusMinPixels: 4, pickable: true }));
@@ -261,17 +294,15 @@ export class DeckGLMap {
     if (this.state.layers.nasa && this.liveNaturalEvents.length > 0) layers.push(new ScatterplotLayer({ id: 'nasa-events-layer', data: this.liveNaturalEvents, getPosition: (d) => d.coordinates, getRadius: 18000, getFillColor: (d) => { const catString = Array.isArray(d.categories) ? d.categories.join(' ').toLowerCase() : ''; return catString.includes('volcanoes') || catString.includes('wildfires') ? [255, 100, 0, 200] : [0, 150, 255, 200]; }, radiusMinPixels: 5, pickable: true }));
     if (this.state.layers.fires && this.liveFires.length > 0) layers.push(new ScatterplotLayer({ id: 'fires-layer', data: this.liveFires, getPosition: (d) => [d.lon, d.lat], getRadius: (d) => Math.min((d.frp || 50) * 150, 30000), getFillColor: (d) => (d.frp && d.frp > 100) ? [255, 60, 0, 200] : [255, 140, 0, 150], radiusMinPixels: 3, pickable: true }));
 
-    // 3. LA COUCHE DES PRODUCTEURS EN VRAIES COULEURS
+    // 3. LA COUCHE DES PRODUCTEURS
     if (this.selectedCommodity !== 'none') {
       const commodityData = PRODUCERS[this.selectedCommodity];
-      
-      // On utilise IconLayer au lieu de TextLayer !
       layers.push(new IconLayer({
         id: 'producers-icon-layer',
         data: commodityData.countries,
         getPosition: (d: any) => [d.lon, d.lat],
         getIcon: () => ({
-          url: getEmojiDataURL(commodityData.emoji), // L'image PNG générée avec ses vraies couleurs
+          url: getEmojiDataURL(commodityData.emoji),
           width: 128,
           height: 128,
           anchorY: 64
