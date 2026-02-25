@@ -8,7 +8,7 @@ import type { MapLayers } from '../types';
 import { PIPELINES } from '../config/pipelines';
 import { PORTS } from '../config/ports';
 // CORRECTION ICI : On importe aussi INTEL_HOTSPOTS et MILITARY_BASES
-import { CONFLICT_ZONES, STRATEGIC_WATERWAYS, INTEL_HOTSPOTS, MILITARY_BASES } from '../config/geo';
+import { CONFLICT_ZONES, STRATEGIC_WATERWAYS, INTEL_HOTSPOTS, US_MILITARY_BASES } from '../config/geo';
 import { CRITICAL_MINERALS } from '../config/demo-data';
 import { PRODUCERS } from '../config/commodities'; 
 import { fetchSanctionedCountries } from '../config/sanctions';
