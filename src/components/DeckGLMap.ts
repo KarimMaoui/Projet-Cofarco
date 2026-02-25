@@ -9,7 +9,7 @@ import { PIPELINES } from '../config/pipelines';
 import { PORTS } from '../config/ports';
 import { CONFLICT_ZONES, STRATEGIC_WATERWAYS } from '../config/geo';
 import { CRITICAL_MINERALS } from '../config/demo-data';
-import { PRODUCERS } from '../config/commodities'; // On importe ta base de données !
+import { PRODUCERS } from '../config/commodities'; 
 
 const DARK_STYLE = 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json';
 
@@ -78,7 +78,6 @@ export class DeckGLMap {
         let html = '';
 
         try {
-          // On écoute le cercle de fond (bg) pour afficher la bulle
           if (layerId === 'producers-bg-layer') {
             const com = PRODUCERS[this.selectedCommodity];
             html = `<div style="text-align:center;">
@@ -224,7 +223,7 @@ export class DeckGLMap {
   private buildLayers() {
     const layers = [];
 
-    // 1. Infrastructures & Géopolitique
+    // 1. Infrastructures & Géopolitique (En-dessous)
     if (this.state.layers.pipelines) layers.push(new PathLayer({ id: 'pipelines-layer', data: PIPELINES, getPath: (d) => d.points, getColor: (d) => d.type === 'oil' ? [255, 107, 53, 200] : [0, 180, 216, 200], getWidth: 2, widthMinPixels: 2, pickable: true }));
     if (this.state.layers.ports) layers.push(new ScatterplotLayer({ id: 'ports-layer', data: PORTS, getPosition: (d) => [d.lon, d.lat], getRadius: 8000, getFillColor: (d) => d.type === 'oil' || d.type === 'lng' ? [255, 140, 0, 200] : [0, 200, 255, 180], radiusMinPixels: 4, pickable: true }));
     if (this.state.layers.waterways) layers.push(new ScatterplotLayer({ id: 'waterways-layer', data: STRATEGIC_WATERWAYS, getPosition: (d) => [d.lon, d.lat], getRadius: 15000, getFillColor: [255, 255, 0, 180], radiusMinPixels: 6, pickable: true }));
@@ -233,40 +232,40 @@ export class DeckGLMap {
       layers.push(new GeoJsonLayer({ id: 'conflicts-layer', data: conflictGeoJSON, filled: true, stroked: true, getFillColor: [255, 0, 0, 40], getLineColor: [255, 0, 0, 180], getLineWidth: 2, lineWidthMinPixels: 1, pickable: true }));
     }
 
-    // 2. LA COUCHE DES PAYS PRODUCTEURS (Double couche : Cercle fluo + Emoji)
+    // 2. Vraies données LIVE (Au milieu)
+    if (this.state.layers.earthquakes && this.liveEarthquakes.length > 0) layers.push(new ScatterplotLayer({ id: 'earthquakes-layer', data: this.liveEarthquakes, getPosition: (d) => d.coordinates, getRadius: (d) => Math.pow(2, d.mag || 1) * 1500, getFillColor: [255, 68, 68, 180], radiusMinPixels: 4, pickable: true }));
+    if (this.state.layers.nasa && this.liveNaturalEvents.length > 0) layers.push(new ScatterplotLayer({ id: 'nasa-events-layer', data: this.liveNaturalEvents, getPosition: (d) => d.coordinates, getRadius: 18000, getFillColor: (d) => { const catString = Array.isArray(d.categories) ? d.categories.join(' ').toLowerCase() : ''; return catString.includes('volcanoes') || catString.includes('wildfires') ? [255, 100, 0, 200] : [0, 150, 255, 200]; }, radiusMinPixels: 5, pickable: true }));
+    if (this.state.layers.fires && this.liveFires.length > 0) layers.push(new ScatterplotLayer({ id: 'fires-layer', data: this.liveFires, getPosition: (d) => [d.lon, d.lat], getRadius: (d) => Math.min((d.frp || 50) * 150, 30000), getFillColor: (d) => (d.frp && d.frp > 100) ? [255, 60, 0, 200] : [255, 140, 0, 150], radiusMinPixels: 3, pickable: true }));
+
+    // 3. LA COUCHE DES PRODUCTEURS (Tout à la fin = TOUT AU-DESSUS)
     if (this.selectedCommodity !== 'none') {
       const commodityData = PRODUCERS[this.selectedCommodity];
       
-      // A. Le cercle lumineux (Assure qu'on voit toujours le pays)
+      // A. Le "Badge" (Cercle opaque, plus petit, avec bordure fluo)
       layers.push(new ScatterplotLayer({
         id: 'producers-bg-layer',
         data: commodityData.countries,
         getPosition: (d: any) => [d.lon, d.lat],
-        getRadius: 250000, // Rayon très large
-        getFillColor: [68, 255, 136, 120], // Vert transparent Cofarco
-        getLineColor: [68, 255, 136, 255],
+        getRadius: 180000, // Environ la taille d'une région, s'adapte au zoom
+        getFillColor: [15, 15, 15, 255], // Fond noir très opaque pour un contraste parfait
+        getLineColor: [68, 255, 136, 255], // Bordure Vert Cofarco
         lineWidthMinPixels: 2,
         stroked: true,
-        pickable: true // C'est lui qui gère la bulle d'info !
+        pickable: true // C'est lui qui gère la bulle d'info
       }));
 
-      // B. L'Emoji par-dessus
+      // B. L'Emoji (Plus petit, parfaitement contrasté)
       layers.push(new TextLayer({
         id: 'producers-text-layer',
         data: commodityData.countries,
         getPosition: (d: any) => [d.lon, d.lat],
         getText: (d: any) => commodityData.emoji,
-        getSize: 30, 
-        characterSet: [commodityData.emoji], // LE SECRET EST LÀ : on force WebGL à charger l'emoji
+        getSize: 22, // Taille réduite (plus élégant)
+        characterSet: [commodityData.emoji],
         getPixelOffset: [0, 0], 
-        pickable: false // Pas besoin de cliquer sur le texte, le cercle en dessous gère ça
+        pickable: false 
       }));
     }
-
-    // 3. Vraies données LIVE
-    if (this.state.layers.earthquakes && this.liveEarthquakes.length > 0) layers.push(new ScatterplotLayer({ id: 'earthquakes-layer', data: this.liveEarthquakes, getPosition: (d) => d.coordinates, getRadius: (d) => Math.pow(2, d.mag || 1) * 1500, getFillColor: [255, 68, 68, 180], radiusMinPixels: 4, pickable: true }));
-    if (this.state.layers.nasa && this.liveNaturalEvents.length > 0) layers.push(new ScatterplotLayer({ id: 'nasa-events-layer', data: this.liveNaturalEvents, getPosition: (d) => d.coordinates, getRadius: 18000, getFillColor: (d) => { const catString = Array.isArray(d.categories) ? d.categories.join(' ').toLowerCase() : ''; return catString.includes('volcanoes') || catString.includes('wildfires') ? [255, 100, 0, 200] : [0, 150, 255, 200]; }, radiusMinPixels: 5, pickable: true }));
-    if (this.state.layers.fires && this.liveFires.length > 0) layers.push(new ScatterplotLayer({ id: 'fires-layer', data: this.liveFires, getPosition: (d) => [d.lon, d.lat], getRadius: (d) => Math.min((d.frp || 50) * 150, 30000), getFillColor: (d) => (d.frp && d.frp > 100) ? [255, 60, 0, 200] : [255, 140, 0, 150], radiusMinPixels: 3, pickable: true }));
 
     return layers;
   }
