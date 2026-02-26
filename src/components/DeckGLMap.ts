@@ -176,21 +176,28 @@ export class DeckGLMap {
     const menu = document.createElement('div');
     menu.className = 'layer-menu';
     
-    // CORRECTION : AJOUT DES DEUX BOUTONS AU MENU
     const layersConfig = [
       { key: 'sanctions', label: 'PAYS SOUS SANCTIONS', icon: '⛔' },
-      { key: 'hotspots', label: 'INTEL HOTSPOTS', icon: '👁️' }, // NOUVEAU
-      { key: 'bases', label: 'BASES MILITAIRES', icon: '🪖' }, // NOUVEAU
+      { key: 'hotspots', label: 'INTEL HOTSPOTS', icon: '👁️' },
+      { key: 'bases', label: 'BASES MILITAIRES', icon: '🪖' },
       { key: 'pipelines', label: 'OLÉODUCS ET GAZODUCS', icon: '🛢️' },
       { key: 'ports', label: 'PORTS STRATÉGIQUES', icon: '🚢' },
       { key: 'waterways', label: 'CHOKEPOINTS MARITIMES', icon: '⚓' },
       { key: 'conflicts', label: 'ZONES DE CONFLIT', icon: '⚔️' },
-      { key: 'earthquakes', label: 'SÉISMES LIVE (USGS)', icon: '💥' },
+      { key: 'earthquakes', label: 'SÉISMES LIVE (USGS)', icon: '〽️' },
       { key: 'nasa', label: 'TEMPÊTES & VOLCANS', icon: '🌪️' },
       { key: 'fires', label: 'INCENDIES LIVE (NASA)', icon: '🔥' }
     ];
 
-    let html = `<div class="layer-menu-header"><span>COUCHES & DONNÉES</span><span>▼</span></div><div class="layer-list">`;
+    // On ajoute un style 'cursor: pointer' sur le header pour montrer qu'il est cliquable
+    let html = `
+      <div class="layer-menu-header" style="cursor: pointer; display: flex; justify-content: space-between; align-items: center; user-select: none;">
+        <span>COUCHES & DONNÉES</span>
+        <span class="toggle-icon" style="font-size: 10px;">▼</span>
+      </div>
+      <div class="layer-content" style="display: block;">
+        <div class="layer-list">
+    `;
 
     layersConfig.forEach(({ key, label, icon }) => {
       const isChecked = this.state.layers[key] ? 'checked' : '';
@@ -205,41 +212,57 @@ export class DeckGLMap {
     });
 
     html += `
-      <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #333;">
-        <label style="display: flex; align-items: center; gap: 8px; font-size: 11px; color: #888; margin-bottom: 8px; font-weight: bold; letter-spacing: 1px;">
-          TOP 10 PRODUCTEURS (MACRO)
-        </label>
-        <select id="commodity-select" style="width: 100%; background: #1a1a1a; color: white; border: 1px solid #44ff88; padding: 8px; border-radius: 4px; font-size: 12px; outline: none; cursor: pointer;">
-          <option value="none">-- Désactivé --</option>
-          <optgroup label="🌱 AGRICULTURE">
-            <option value="wheat">🌾 Blé</option>
-            <option value="corn">🌽 Maïs</option>
-            <option value="rice">🍚 Riz</option>
-            <option value="soybeans">🌿 Soja</option>
-            <option value="sugar">🍬 Sucre</option>
-            <option value="coffee">☕ Café</option>
-            <option value="cotton">🧶 Coton</option>
-          </optgroup>
-          <optgroup label="⚡ ÉNERGIE">
-            <option value="oil">🛢️ Pétrole Brut</option>
-            <option value="gas">💨 Gaz Naturel</option>
-            <option value="coal">⛏️ Charbon</option>
-            <option value="uranium">☢️ Uranium</option>
-          </optgroup>
-          <optgroup label="💎 MINERAIS & MÉTAUX">
-            <option value="gold">🥇 Or</option>
-            <option value="copper">🥉 Cuivre</option>
-            <option value="iron">🧲 Minerai de Fer</option>
-            <option value="lithium">🔋 Lithium</option>
-            <option value="rare_earths">💠 Terres Rares</option>
-          </optgroup>
-        </select>
-      </div>
-    `;
+        </div>
+        <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #333;">
+          <label style="display: flex; align-items: center; gap: 8px; font-size: 11px; color: #888; margin-bottom: 8px; font-weight: bold; letter-spacing: 1px;">
+            TOP 10 PRODUCTEURS (MACRO)
+          </label>
+          <select id="commodity-select" style="width: 100%; background: #1a1a1a; color: white; border: 1px solid #44ff88; padding: 8px; border-radius: 4px; font-size: 12px; outline: none; cursor: pointer;">
+            <option value="none">-- Désactivé --</option>
+            <optgroup label="🌱 AGRICULTURE">
+              <option value="wheat">🌾 Blé</option>
+              <option value="corn">🌽 Maïs</option>
+              <option value="rice">🍚 Riz</option>
+              <option value="soybeans">🌿 Soja</option>
+              <option value="sugar">🧊 Sucre</option>
+              <option value="coffee">☕ Café</option>
+              <option value="cotton">🧶 Coton</option>
+            </optgroup>
+            <optgroup label="⚡ ÉNERGIE">
+              <option value="oil">🛢️ Pétrole Brut</option>
+              <option value="gas">💨 Gaz Naturel</option>
+              <option value="coal">⛏️ Charbon</option>
+              <option value="uranium">☢️ Uranium</option>
+            </optgroup>
+            <optgroup label="💎 MINERAIS & MÉTAUX">
+              <option value="gold">🥇 Or</option>
+              <option value="copper">🥉 Cuivre</option>
+              <option value="iron">🧲 Minerai de Fer</option>
+              <option value="lithium">🔋 Lithium</option>
+              <option value="rare_earths">💠 Terres Rares</option>
+            </optgroup>
+          </select>
+        </div>
+      </div> `;
 
-    html += `</div>`;
     menu.innerHTML = html;
     this.container.appendChild(menu);
+
+    // --- NOUVEAU : Logique pour rétracter/dérouler le menu ---
+    const header = menu.querySelector('.layer-menu-header') as HTMLElement;
+    const content = menu.querySelector('.layer-content') as HTMLElement;
+    const toggleIcon = menu.querySelector('.toggle-icon') as HTMLElement;
+
+    header.addEventListener('click', () => {
+      if (content.style.display === 'none') {
+        content.style.display = 'block';
+        toggleIcon.textContent = '▼';
+      } else {
+        content.style.display = 'none';
+        toggleIcon.textContent = '▶';
+      }
+    });
+    // ---------------------------------------------------------
 
     menu.querySelectorAll('input[type="checkbox"]').forEach(input => {
       input.addEventListener('change', (e) => {
