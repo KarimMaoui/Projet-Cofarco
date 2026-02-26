@@ -125,8 +125,8 @@ export class App {
     container.innerHTML = `
       <header class="header" style="height: 40px; background: #141414; border-bottom: 1px solid #2a2a2a; display: flex; align-items: center; padding: 0 20px; justify-content: space-between;">
         <div style="display: flex; align-items: baseline; gap: 10px;">
-          <div style="font-size: 14px; font-weight: 800; color: #44ff88; letter-spacing: 1px;">COFARCO RISK MONITOR</div>
-          <div style="font-size: 10px; color: #888; text-transform: uppercase; letter-spacing: 2px;">Commodities & Trade Finance</div>
+          <div style="font-size: 14px; font-weight: 800; color: #44ff88; letter-spacing: 1px;">CPR Intelligence Terminal</div>
+          <div style="font-size: 10px; color: #888; text-transform: uppercase; letter-spacing: 2px;"></div>
         </div>
         <div style="display: flex; align-items: center; gap: 8px;">
            <div style="width: 8px; height: 8px; border-radius: 50%; background: #44ff88; box-shadow: 0 0 10px #44ff88;"></div>
