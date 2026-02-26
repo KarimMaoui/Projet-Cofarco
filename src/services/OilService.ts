@@ -23,7 +23,7 @@ export class OilService {
     try {
       const results = await Promise.all(assets.map(async (asset) => {
         const targetUrl = `https://query1.finance.yahoo.com/v8/finance/chart/${asset.sym}?interval=1d&range=1d`;
-        const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(targetUrl)}`;
+        const proxyUrl = `/api/proxy?url=${encodeURIComponent(targetUrl)}`;
         
         const response = await fetch(proxyUrl);
         if (!response.ok) throw new Error(`HTTP Error: ${response.status}`);
