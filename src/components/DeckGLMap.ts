@@ -191,11 +191,11 @@ export class DeckGLMap {
 
     // On ajoute un style 'cursor: pointer' sur le header pour montrer qu'il est cliquable
     let html = `
-      <div class="layer-menu-header" style="cursor: pointer; display: flex; justify-content: space-between; align-items: center; user-select: none;">
+      <div class="layer-menu-header" style="cursor: pointer; display: flex; justify-content: space-between; align-items: center; user-select: none; padding-bottom: 8px; border-bottom: 1px solid #333;">
         <span>COUCHES & DONNÉES</span>
         <span class="toggle-icon" style="font-size: 10px;">▼</span>
       </div>
-      <div class="layer-content" style="display: block;">
+      <div class="layer-content" style="display: block; max-height: 250px; overflow-y: auto; overflow-x: hidden; padding-top: 10px; padding-right: 8px; scrollbar-width: thin; scrollbar-color: #44ff88 #1a1a1a;">
         <div class="layer-list">
     `;
 
