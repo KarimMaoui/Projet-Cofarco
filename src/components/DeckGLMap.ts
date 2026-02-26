@@ -179,12 +179,12 @@ export class DeckGLMap {
     const layersConfig = [
       { key: 'sanctions', label: 'PAYS SOUS SANCTIONS', icon: '⛔' },
       { key: 'hotspots', label: 'INTEL HOTSPOTS', icon: '👁️' }, // NOUVEAU
-      { key: 'bases', label: 'BASES MILITAIRES', icon: '⚓' }, // NOUVEAU
+      { key: 'bases', label: 'BASES MILITAIRES', icon: '🪖' }, // NOUVEAU
       { key: 'pipelines', label: 'OLÉODUCS ET GAZODUCS', icon: '🛢️' },
       { key: 'ports', label: 'PORTS STRATÉGIQUES', icon: '🚢' },
       { key: 'waterways', label: 'CHOKEPOINTS MARITIMES', icon: '⚓' },
       { key: 'conflicts', label: 'ZONES DE CONFLIT', icon: '⚔️' },
-      { key: 'earthquakes', label: 'SÉISMES LIVE (USGS)', icon: '🔴' },
+      { key: 'earthquakes', label: 'SÉISMES LIVE (USGS)', icon: '💥' },
       { key: 'nasa', label: 'TEMPÊTES & VOLCANS', icon: '🌪️' },
       { key: 'fires', label: 'INCENDIES LIVE (NASA)', icon: '🔥' }
     ];
@@ -221,7 +221,7 @@ export class DeckGLMap {
           </optgroup>
           <optgroup label="⚡ ÉNERGIE">
             <option value="oil">🛢️ Pétrole Brut</option>
-            <option value="gas">🔥 Gaz Naturel</option>
+            <option value="gas">💨 Gaz Naturel</option>
             <option value="coal">⛏️ Charbon</option>
             <option value="uranium">☢️ Uranium</option>
           </optgroup>
