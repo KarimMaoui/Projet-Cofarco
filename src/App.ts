@@ -4,13 +4,16 @@ import { MaritimePanel } from './components/MaritimePanel';
 import { CascadePanel } from './components/CascadePanel';
 import { LiveNewsPanel } from './components/LiveNewsPanel';
 import { ClimatePanel } from './components/ClimatePanel';
-import { OilPanel } from './components/OilPanel'; // AJOUT DE L'IMPORT
+import { OilPanel } from './components/OilPanel';
+import { ForexPanel } from './components/ForexPanel'; // NOUVEAU
+import { RatesPanel } from './components/RatesPanel'; // NOUVEAU
 
 // Services
 import { fetchLiveEarthquakes, fetchLiveNaturalEvents } from './services/api';
 import { fetchLiveFires } from './services/wildfires';
 import { ClimateService } from './services/ClimateService';
-import { OilService } from './services/OilService'; // AJOUT DE L'IMPORT
+import { OilService } from './services/OilService';
+import { FinanceService } from './services/FinanceService'; // NOUVEAU
 
 export class App {
   private containerId: string;
@@ -18,7 +21,9 @@ export class App {
   private maritimePanel!: MaritimePanel;
   private cascadePanel!: CascadePanel;
   private climatePanel!: ClimatePanel;
-  private oilPanel!: OilPanel; // AJOUT DE LA PROPRIÉTÉ
+  private oilPanel!: OilPanel;
+  private forexPanel!: ForexPanel; // NOUVEAU
+  private ratesPanel!: RatesPanel; // NOUVEAU
 
   constructor(containerId: string) {
     this.containerId = containerId;
@@ -52,19 +57,25 @@ export class App {
       this.maritimePanel = new MaritimePanel();
       this.cascadePanel = new CascadePanel();
       this.climatePanel = new ClimatePanel();
-      this.oilPanel = new OilPanel(); // INITIALISATION DU PANNEAU PÉTROLE
+      this.oilPanel = new OilPanel();
+      this.forexPanel = new ForexPanel(); // NOUVEAU
+      this.ratesPanel = new RatesPanel(); // NOUVEAU
       
       // Ajout des éléments au DOM
       panelsContainer.appendChild(this.maritimePanel.element);
       panelsContainer.appendChild(this.cascadePanel.element);
       panelsContainer.appendChild(this.climatePanel.element);
-      panelsContainer.appendChild(this.oilPanel.element); // AJOUT AU DOM
+      panelsContainer.appendChild(this.oilPanel.element);
+      panelsContainer.appendChild(this.forexPanel.element); // NOUVEAU
+      panelsContainer.appendChild(this.ratesPanel.element); // NOUVEAU
 
       // États de chargement visuels
       this.maritimePanel.showLoading("Analyse NASA EONET...");
       this.cascadePanel.showLoading("Flux USGS en cours...");
       this.climatePanel.showLoading("Calcul anomalies Open-Meteo...");
-      this.oilPanel.showLoading("Marchés Énergie..."); // CHARGEMENT
+      this.oilPanel.showLoading("Marchés Stratégiques..."); 
+      this.forexPanel.showLoading("Taux de change..."); // NOUVEAU
+      this.ratesPanel.showLoading("Taux souverains..."); // NOUVEAU
     }
 
     // 3. Lancement du chargement des données
@@ -73,13 +84,15 @@ export class App {
 
   private async loadRealTimeData() {
     try {
-      // On récupère les données fiables, incluant le pétrole
+      // On récupère les données fiables, incluant le pétrole, forex et taux
       const results = await Promise.allSettled([
         fetchLiveEarthquakes(),
         fetchLiveNaturalEvents(),
         fetchLiveFires(),
         ClimateService.fetchAnomalies(),
-        OilService.fetchPrices() // APPEL DU SERVICE PÉTROLE
+        OilService.fetchPrices(),
+        FinanceService.fetchForex(['majors', 'emerging']), // NOUVEAU
+        FinanceService.fetchRates() // NOUVEAU
       ]);
 
       const earthquakes = results[0].status === 'fulfilled' ? results[0].value : [];
@@ -90,14 +103,18 @@ export class App {
       const fires = Array.isArray(wildfireResult) ? wildfireResult : (wildfireResult.fires || []);
       
       const climate = results[3].status === 'fulfilled' ? results[3].value : [];
-      const oilPrices = results[4].status === 'fulfilled' ? results[4].value : []; // RÉCUPÉRATION DU PÉTROLE
+      const oilPrices = results[4].status === 'fulfilled' ? results[4].value : []; 
+      const forexData = results[5].status === 'fulfilled' ? results[5].value : []; // NOUVEAU
+      const ratesData = results[6].status === 'fulfilled' ? results[6].value : []; // NOUVEAU
 
-      // Mises à jour des panneaux classiques avec la donnée sécurisée
+      // Mises à jour des panneaux avec la donnée sécurisée
       if (this.map) this.map.updateLiveData(earthquakes, naturalEvents, fires);
       if (this.maritimePanel) this.maritimePanel.updateData(naturalEvents);
       if (this.cascadePanel) this.cascadePanel.updateData(earthquakes, fires);
       if (this.climatePanel) this.climatePanel.updateData(climate);
-      if (this.oilPanel) this.oilPanel.updateData(oilPrices); // MISE À JOUR DU PANNEAU
+      if (this.oilPanel) this.oilPanel.updateData(oilPrices); 
+      if (this.forexPanel) this.forexPanel.updateData(forexData); // NOUVEAU
+      if (this.ratesPanel) this.ratesPanel.updateData(ratesData); // NOUVEAU
 
     } catch (err) {
       console.error("Erreur critique dans le flux de données:", err);
