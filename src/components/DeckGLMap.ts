@@ -277,17 +277,18 @@ export class DeckGLMap {
   private buildLayers() {
     const layers = [];
 
-    // 0. COUCHE PAYS SOUS SANCTIONS 
     if (this.state.layers.sanctions && this.sanctionsGeoJSON) {
       layers.push(new GeoJsonLayer({
         id: 'sanctions-layer',
         data: this.sanctionsGeoJSON,
         filled: true,
         stroked: true,
-        getFillColor: [255, 0, 0, 40],
-        getLineColor: [255, 68, 68, 200],
-        getLineWidth: 2,
-        lineWidthMinPixels: 1,
+        extruded: false, // Assure que la couche reste plate
+        // CORRECTION COULEURS :
+        getFillColor: [255, 255, 255, 180], // Blanc bien opaque et visible
+        getLineColor: [255, 40, 40, 255],   // Bordure rouge vif
+        getLineWidth: 3,                    // Bordure plus épaisse
+        lineWidthMinPixels: 2,
         pickable: true
       }));
     }
