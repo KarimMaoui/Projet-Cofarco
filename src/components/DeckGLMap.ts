@@ -119,7 +119,9 @@ export class DeckGLMap {
                       <span style="color:#44ff88;">Pays : ${obj.name}</span>
                     </div>`;
           } else if (layerId === 'sanctions-layer') {
-            html = `<strong style="color:#ff4444;">⛔ ZONE SOUS SANCTIONS (US)</strong><br/>Pays : ${obj.properties.ADMIN}<br/><span style="color:#888;">Risque Compliance : Extrême</span>`;
+            // On gère l'ancienne propriété (ADMIN) et la nouvelle (name)
+            const countryName = obj.properties.name || obj.properties.ADMIN || 'Inconnu';
+            html = `<strong style="color:#ff4444;">⛔ ZONE SOUS SANCTIONS (US)</strong><br/>Pays : ${countryName}<br/><span style="color:#888;">Risque Compliance : Extrême</span>`;
           } else if (layerId === 'pipelines-layer') {
             html = `<strong>${obj.name}</strong><br/>Type: ${obj.type.toUpperCase()}<br/>Capacité: ${obj.capacity || 'Inconnue'}`;
           } else if (layerId === 'ports-layer') {
