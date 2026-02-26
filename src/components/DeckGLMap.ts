@@ -96,6 +96,7 @@ export class DeckGLMap {
       center: [20, 30],
       zoom: this.state.zoom,
       attributionControl: false,
+      renderWorldCopies: false 
     });
   }
 
