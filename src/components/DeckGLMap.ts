@@ -331,7 +331,7 @@ export class DeckGLMap {
         getPosition: (d: any) => [d.lon, d.lat],
         getRadius: 10000,
         // Bleu foncé pour US/NATO, Rouge sombre pour Russie/Chine
-        getFillColor: (d: any) => d.type === 'us-nato' ? [0, 100, 255, 200] : [200, 0, 0, 200],
+        getFillColor: [0, 180, 50, 200],
         radiusMinPixels: 5,
         pickable: true
       }));
