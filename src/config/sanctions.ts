@@ -18,10 +18,10 @@ export async function fetchSanctionedCountries() {
       'BLR'  // Biélorussie
     ];
 
-    // CORRECTION ICI : On cherche la propriété peu importe sa casse
+    // LA CORRECTION EST ICI : Ajout de 'ISO3166-1-Alpha-3'
     const filteredFeatures = data.features.filter((feature: any) => {
       const props = feature.properties;
-      const iso = props.ISO_A3 || props.iso_a3 || props.ADM0_A3 || props.adm0_a3;
+      const iso = props['ISO3166-1-Alpha-3'] || props.ISO_A3 || props.iso_a3;
       return sanctionedISOs.includes(iso);
     });
 
