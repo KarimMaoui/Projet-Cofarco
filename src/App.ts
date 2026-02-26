@@ -62,11 +62,11 @@ export class App {
       this.ratesPanel = new RatesPanel(); // NOUVEAU
       
       // Ajout des éléments au DOM
+      panelsContainer.appendChild(this.oilPanel.element);
+      panelsContainer.appendChild(this.forexPanel.element);
       panelsContainer.appendChild(this.maritimePanel.element);
       panelsContainer.appendChild(this.cascadePanel.element);
       panelsContainer.appendChild(this.climatePanel.element);
-      panelsContainer.appendChild(this.oilPanel.element);
-      panelsContainer.appendChild(this.forexPanel.element); // NOUVEAU
       panelsContainer.appendChild(this.ratesPanel.element); // NOUVEAU
 
       // États de chargement visuels
