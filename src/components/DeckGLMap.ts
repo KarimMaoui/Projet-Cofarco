@@ -191,7 +191,7 @@ export class DeckGLMap {
     menu.className = 'layer-menu';
     
     const layersConfig = [
-      { key: 'sanctions', label: 'PAYS SOUS SANCTIONS', icon: '⛔' },
+      { key: 'sanctions', label: 'SANCTIONS (OFAC / SECO)', icon: '⛔' },
       { key: 'hotspots', label: 'INTEL HOTSPOTS', icon: '👁️' },
       { key: 'bases', label: 'BASES MILITAIRES', icon: '🪖' },
       { key: 'pipelines', label: 'OLÉODUCS ET GAZODUCS', icon: '🛢️' },
