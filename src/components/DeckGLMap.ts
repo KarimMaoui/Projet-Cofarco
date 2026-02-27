@@ -122,9 +122,21 @@ export class DeckGLMap {
                       <span style="color:#44ff88;">Pays : ${obj.name}</span>
                     </div>`;
           } else if (layerId === 'sanctions-layer') {
-            // On gère l'ancienne propriété (ADMIN) et la nouvelle (name)
             const countryName = obj.properties.name || obj.properties.ADMIN || 'Inconnu';
-            html = `<strong style="color:#ff4444;">⛔ ZONE SOUS SANCTIONS (US)</strong><br/>Pays : ${countryName}<br/><span style="color:#888;">Risque Compliance : Extrême</span>`;
+            
+            // On vérifie si le pays est dans notre liste SECO
+            const isSeco = SECO_SANCTIONED_COUNTRIES.includes(countryName);
+            
+            // On prépare les badges
+            const ofacBadge = `<span style="background: #ff4444; color: white; padding: 2px 6px; border-radius: 4px; font-size: 10px; margin-right: 4px;">🇺🇸 OFAC</span>`;
+            const secoBadge = isSeco ? `<span style="background: #ff0000; color: white; padding: 2px 6px; border-radius: 4px; font-size: 10px; border: 1px solid white;">🇨🇭 SECO</span>` : '';
+
+            html = `
+              <div style="margin-bottom: 4px;">${ofacBadge} ${secoBadge}</div>
+              <strong style="color:#ff4444; font-size: 14px;">ZONES SOUS SANCTIONS</strong><br/>
+              Pays : ${countryName}<br/>
+              <span style="color:#888;">Risque Compliance : Extrême</span>
+            `;
           } else if (layerId === 'pipelines-layer') {
             html = `<strong>${obj.name}</strong><br/>Type: ${obj.type.toUpperCase()}<br/>Capacité: ${obj.capacity || 'Inconnue'}`;
           } else if (layerId === 'ports-layer') {
@@ -133,7 +145,7 @@ export class DeckGLMap {
             html = `<strong>${obj.properties.name}</strong><br/>Zone sous tension affectant le fret.`;
           } else if (layerId === 'waterways-layer') {
             html = `<strong>${obj.name}</strong><br/>${obj.description}`;
-          } 
+          }
           
           // --- NOUVEAUX TOOLTIPS ---
           else if (layerId === 'intel-hotspots-layer') {
