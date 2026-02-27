@@ -72,8 +72,10 @@ export class App {
       panelsContainer.appendChild(this.forexPanel.element);
       panelsContainer.appendChild(cdsPanel.element); // AJOUTÉ ICI !
       panelsContainer.appendChild(oecdPanel.element);
+      panelsContainer.appendChild(this.ratesPanel.element);
       panelsContainer.appendChild(this.maritimePanel.element);
       panelsContainer.appendChild(this.cascadePanel.element); // J'ai bien laissé cascade (incendies/séismes)
+
       
       // États de chargement visuels
       this.maritimePanel.showLoading("Analyse NASA EONET...");
