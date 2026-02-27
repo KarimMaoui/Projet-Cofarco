@@ -10,42 +10,61 @@ export interface FinancialData {
 }
 
 export class FinanceService {
-  // Fonction générique de récupération
+  /**
+   * Fonction générique de récupération avec sécurité anti-crash
+   */
   private static async fetchYahooData(assets: any[]): Promise<FinancialData[]> {
     try {
       const results = await Promise.all(assets.map(async (asset) => {
-        const targetUrl = `https://query1.finance.yahoo.com/v8/finance/chart/${asset.sym}?interval=1d&range=1d`;
-        const proxyUrl = `/api/proxy?url=${encodeURIComponent(targetUrl)}`;
-        
-        const response = await fetch(proxyUrl);
-        if (!response.ok) throw new Error(`HTTP Error: ${response.status}`);
-        
-        const data = await response.json();
-        const meta = data.chart.result[0].meta;
-        const currentPrice = meta.regularMarketPrice;
-        const referencePrice = meta.previousClose || meta.chartPreviousClose || currentPrice;
-        
-        const changePct = referencePrice !== 0 
-          ? ((currentPrice - referencePrice) / referencePrice) * 100 
-          : 0;
+        try {
+          const targetUrl = `https://query1.finance.yahoo.com/v8/finance/chart/${asset.sym}?interval=1d&range=1d`;
+          const proxyUrl = `/api/proxy?url=${encodeURIComponent(targetUrl)}`;
+          
+          const response = await fetch(proxyUrl);
+          if (!response.ok) return null;
+          
+          const data = await response.json();
+          
+          // --- SÉCURITÉ : Vérification de la structure de réponse Yahoo ---
+          if (!data?.chart?.result?.[0]) {
+            console.warn(`⚠️ Donnée indisponible pour le symbole : ${asset.sym}`);
+            return null; 
+          }
 
-        return {
-          name: asset.name,
-          symbol: asset.sym,
-          price: currentPrice,
-          change: changePct,
-          unit: asset.unit,
-          group: asset.group
-        };
+          const meta = data.chart.result[0].meta;
+          const currentPrice = meta.regularMarketPrice;
+          const referencePrice = meta.previousClose || meta.chartPreviousClose || currentPrice;
+          
+          const changePct = referencePrice !== 0 
+            ? ((currentPrice - referencePrice) / referencePrice) * 100 
+            : 0;
+
+          return {
+            name: asset.name,
+            symbol: asset.sym,
+            price: currentPrice,
+            change: changePct,
+            unit: asset.unit,
+            group: asset.group
+          };
+        } catch (innerError) {
+          console.error(`Erreur sur l'asset ${asset.sym}:`, innerError);
+          return null; 
+        }
       }));
-      return results;
+
+      // On filtre pour ne garder que les données valides (on retire les null)
+      return results.filter((item): item is FinancialData => item !== null);
+
     } catch (e) {
-      console.error("🔴 Erreur Finance API:", e);
+      console.error("🔴 Erreur critique Finance API:", e);
       return [];
     }
   }
 
-  // --- FOREX ---
+  /**
+   * Récupération des taux de change (Majors & Emerging)
+   */
   public static async fetchForex(selectedGroups: string[] = ['majors', 'emerging']): Promise<FinancialData[]> {
     const allPairs = [
       // Devises Majeures
@@ -63,7 +82,9 @@ export class FinanceService {
     return this.fetchYahooData(assetsToFetch);
   }
 
-  // --- TAUX D'INTÉRÊT (BOND YIELDS) ---
+  /**
+   * Récupération des taux d'intérêt souverains (Benchmarks mondiaux)
+   */
   public static async fetchRates(): Promise<FinancialData[]> {
     const rates = [
       { sym: '^TNX', name: 'US Treasury 10Y', unit: '%', group: 'rates' },
