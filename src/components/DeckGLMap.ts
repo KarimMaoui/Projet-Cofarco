@@ -14,7 +14,9 @@ import { PRODUCERS } from '../config/commodities';
 import { fetchSanctionedCountries } from '../config/sanctions';
 
 const DARK_STYLE = 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json';
-
+const SECO_SANCTIONED_COUNTRIES = [
+  'Russia', 'Belarus', 'Iran', 'Syria', 'North Korea', 'Myanmar', 'Sudan', 'Somalia', 'Libya'
+];
 // --- LE SECRET DES EMOJIS ---
 const emojiCache: Record<string, string> = {};
 
