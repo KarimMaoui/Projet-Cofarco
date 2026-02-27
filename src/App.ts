@@ -7,6 +7,7 @@ import { ClimatePanel } from './components/ClimatePanel';
 import { OilPanel } from './components/OilPanel';
 import { ForexPanel } from './components/ForexPanel'; // NOUVEAU
 import { RatesPanel } from './components/RatesPanel'; // NOUVEAU
+import { CountryRiskPanel } from './components/CountryRiskPanel';
 
 // Services
 import { fetchLiveEarthquakes, fetchLiveNaturalEvents } from './services/api';
@@ -60,12 +61,12 @@ export class App {
       this.oilPanel = new OilPanel();
       this.forexPanel = new ForexPanel(); // NOUVEAU
       this.ratesPanel = new RatesPanel(); // NOUVEAU
-      
+      const oecdPanel = new CountryRiskPanel();
       // Ajout des éléments au DOM
       panelsContainer.appendChild(this.oilPanel.element);
       panelsContainer.appendChild(this.forexPanel.element);
+      panelsContainer.appendChild(oecdPanel.element);
       panelsContainer.appendChild(this.maritimePanel.element);
-      panelsContainer.appendChild(this.cascadePanel.element);
       panelsContainer.appendChild(this.climatePanel.element);
       panelsContainer.appendChild(this.ratesPanel.element); // NOUVEAU
 
