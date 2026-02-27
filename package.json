@@ -13,7 +13,8 @@
     "@deck.gl/core": "^9.2.6",
     "@deck.gl/layers": "^9.2.6",
     "@deck.gl/mapbox": "^9.2.6",
-    "maplibre-gl": "^5.16.0"
+    "maplibre-gl": "^5.16.0",
+    "@vercel/analytics": "latest"
   },
   "devDependencies": {
     "typescript": "^5.7.2",
