@@ -6,7 +6,7 @@ export interface FinancialData {
   price: number;
   change: number;
   unit: string;
-  group?: string; // Utile pour séparer Majeures / Émergentes
+  group?: string; 
 }
 
 export class FinanceService {
@@ -46,18 +46,18 @@ export class FinanceService {
   }
 
   // --- FOREX ---
-  public static async fetchRates(): Promise<FinancialData[]> {
-    const rates = [
-      { sym: '^TNX', name: 'US Treasury 10Y', unit: 'Rendement (%)', group: 'rates' },
-      { sym: '^FVX', name: 'US Treasury 5Y', unit: 'Rendement (%)', group: 'rates' },
-      { sym: '^IRX', name: 'US Treasury 13-Week', unit: 'Rendement (%)', group: 'rates' }, // <--- LA VIRGULE ÉTAIT MANQUANTE ICI
-      { sym: '^TYX', name: 'US Treasury 30Y', unit: '%', group: 'rates' }, 
-      { sym: '^US2Y', name: 'US Treasury 2Y', unit: '%', group: 'rates' },  
-      { sym: '^CH10Y', name: 'Swiss Conf. 10Y', unit: '%', group: 'rates' }, 
-      { sym: '^GDBR10', name: 'German Bund 10Y', unit: '%', group: 'rates' } 
+  public static async fetchForex(selectedGroups: string[] = ['majors', 'emerging']): Promise<FinancialData[]> {
+    const allPairs = [
+      // Devises Majeures
+      { sym: 'EURUSD=X', name: 'EUR / USD', unit: 'Dollar US', group: 'majors' },
+      { sym: 'JPY=X', name: 'USD / JPY', unit: 'Yen Japonais', group: 'majors' },
+      { sym: 'GBPUSD=X', name: 'GBP / USD', unit: 'Dollar US', group: 'majors' },
+      // Devises Émergentes / BRICS+
+      { sym: 'CNY=X', name: 'USD / CNY', unit: 'Yuan Chinois', group: 'emerging' },
+      { sym: 'INR=X', name: 'USD / INR', unit: 'Roupie Indienne', group: 'emerging' },
+      { sym: 'BRL=X', name: 'USD / BRL', unit: 'Real Brésilien', group: 'emerging' },
+      { sym: 'TRY=X', name: 'USD / TRY', unit: 'Livre Turque', group: 'emerging' }
     ];
-    return this.fetchYahooData(rates);
-  }
 
     const assetsToFetch = allPairs.filter(p => selectedGroups.includes(p.group));
     return this.fetchYahooData(assetsToFetch);
@@ -66,9 +66,9 @@ export class FinanceService {
   // --- TAUX D'INTÉRÊT (BOND YIELDS) ---
   public static async fetchRates(): Promise<FinancialData[]> {
     const rates = [
-      { sym: '^TNX', name: 'US Treasury 10Y', unit: 'Rendement (%)', group: 'rates' },
-      { sym: '^FVX', name: 'US Treasury 5Y', unit: 'Rendement (%)', group: 'rates' },
-      { sym: '^IRX', name: 'US Treasury 13-Week', unit: 'Rendement (%)', group: 'rates' }
+      { sym: '^TNX', name: 'US Treasury 10Y', unit: '%', group: 'rates' },
+      { sym: '^FVX', name: 'US Treasury 5Y', unit: '%', group: 'rates' },
+      { sym: '^IRX', name: 'US Treasury 13-Week', unit: '%', group: 'rates' },
       { sym: '^TYX', name: 'US Treasury 30Y', unit: '%', group: 'rates' }, 
       { sym: '^US2Y', name: 'US Treasury 2Y', unit: '%', group: 'rates' },  
       { sym: '^CH10Y', name: 'Swiss Conf. 10Y', unit: '%', group: 'rates' }, 
