@@ -135,7 +135,7 @@ export class App {
         </div>
         <div style="display: flex; align-items: center; gap: 8px;">
            <div style="width: 8px; height: 8px; border-radius: 50%; background: #44ff88; box-shadow: 0 0 10px #44ff88;"></div>
-           <span style="font-size: 10px; color: #fff; font-weight: bold; letter-spacing: 1px;">SYSTÈME OPÉRATIONNEL</span>
+           <span style="font-size: 10px; color: #fff; font-weight: bold; letter-spacing: 1px;">Codé par MAOUI Karim</span>
         </div>
       </header>
       
