@@ -63,12 +63,13 @@ export class App {
       this.ratesPanel = new RatesPanel(); // NOUVEAU
       const oecdPanel = new CountryRiskPanel();
       // Ajout des éléments au DOM
+
       panelsContainer.appendChild(this.oilPanel.element);
       panelsContainer.appendChild(this.forexPanel.element);
       panelsContainer.appendChild(oecdPanel.element);
       panelsContainer.appendChild(this.maritimePanel.element);
-      panelsContainer.appendChild(this.climatePanel.element);
-      panelsContainer.appendChild(this.ratesPanel.element); // NOUVEAU
+      panelsContainer.appendChild(this.cascadePanel.element); 
+      panelsContainer.appendChild(this.ratesPanel.element);
 
       // États de chargement visuels
       this.maritimePanel.showLoading("Analyse NASA EONET...");
