@@ -69,6 +69,10 @@ export class FinanceService {
       { sym: '^TNX', name: 'US Treasury 10Y', unit: 'Rendement (%)', group: 'rates' },
       { sym: '^FVX', name: 'US Treasury 5Y', unit: 'Rendement (%)', group: 'rates' },
       { sym: '^IRX', name: 'US Treasury 13-Week', unit: 'Rendement (%)', group: 'rates' }
+      { sym: '^TYX', name: 'US Treasury 30Y', unit: '%', group: 'rates' }, 
+      { sym: '^US2Y', name: 'US Treasury 2Y', unit: '%', group: 'rates' },  
+      { sym: '^CH10Y', name: 'Swiss Conf. 10Y', unit: '%', group: 'rates' }, 
+      { sym: '^GDBR10', name: 'German Bund 10Y', unit: '%', group: 'rates' } 
     ];
     return this.fetchYahooData(rates);
   }
