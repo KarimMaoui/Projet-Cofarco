@@ -73,7 +73,7 @@ export const CONFLICT_ZONES: ConflictZone[] = [
     location: 'Red Sea & Gulf of Aden, Yemen',
     description: 'Houthi maritime campaign against commercial shipping. US/UK airstrikes on Houthi targets. Ongoing blockade attempts.',
     keyDevelopments: ['Ship hijackings', 'US airstrikes', 'Cable cuts', 'Sinking of Rubymar']
-  }
+  },
   {
     id: 'iran_regional',
     name: 'Iran & Regional Tensions',
