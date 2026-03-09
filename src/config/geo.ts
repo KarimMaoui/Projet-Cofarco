@@ -74,6 +74,21 @@ export const CONFLICT_ZONES: ConflictZone[] = [
     description: 'Houthi maritime campaign against commercial shipping. US/UK airstrikes on Houthi targets. Ongoing blockade attempts.',
     keyDevelopments: ['Ship hijackings', 'US airstrikes', 'Cable cuts', 'Sinking of Rubymar']
   }
+  {
+    id: 'iran_regional',
+    name: 'Iran & Regional Tensions',
+    coords: [[35, 39], [63, 39], [63, 25], [35, 25]], // Couvre une large zone : Syrie, Irak, Iran
+    center: [53, 32], // Centre approximatif sur l'Iran
+    intensity: 'high',
+    parties: ['Iran (IRGC)', 'Israel', 'USA', 'Axis of Resistance (Proxies)'],
+    casualties: 'Hundreds (Targeted strikes)',
+    displaced: '1M+ (across Lebanon/Syria borders)',
+    keywords: ['iran', 'israel', 'tehran', 'irgc', 'proxy', 'missile', 'drone', 'syria', 'iraq', 'lebanon'],
+    startDate: 'Ongoing (Major escalation Apr 2024)',
+    location: 'Iran, Iraq, Syria, Lebanon',
+    description: 'Direct military confrontations and intensified proxy warfare between Iran, Israel, and US forces. Involves cross-border strikes, targeted assassinations, and militia activities across the Middle East.',
+    keyDevelopments: ['Direct Iran-Israel missile exchanges', 'Assassinations of high-ranking officials', 'Strikes on proxy bases in Syria/Iraq', 'US military reinforcements']
+  }
 ];
 
 export const INTEL_HOTSPOTS: Hotspot[] = [
