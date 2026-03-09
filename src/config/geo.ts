@@ -77,8 +77,8 @@ export const CONFLICT_ZONES: ConflictZone[] = [
   {
     id: 'iran_regional',
     name: 'Iran & Regional Tensions',
-    coords: [[35, 36], [63, 36], [63, 22], [35, 22]], 
-    center: [53, 29], // Centre approximatif sur l'Iran
+    coords: [[35, 36], [61, 36], [61, 22], [35, 22]], 
+    center: [48, 29], // Centre approximatif sur l'Iran
     intensity: 'high',
     parties: ['Iran (IRGC)', 'Israel', 'USA', 'Axis of Resistance (Proxies)'],
     casualties: 'Hundreds (Targeted strikes)',
